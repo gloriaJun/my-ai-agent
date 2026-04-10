@@ -1,0 +1,66 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    environment:
+      TZ: Asia/Seoul
+    volumes:
+      - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: always
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      TZ: Asia/Seoul
+      N8N_LOG_LEVEL: info
+      OLLAMA_HOST: http://ollama:11434
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+      - ~/Documents/GitHubPrivate:/workspace
+      - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
+    restart: always
+
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw
+    ports:
+      - "18789:18789"
+    environment:
+      TZ: Asia/Seoul
+      OLLAMA_BASE_URL: http://ollama:11434
+      DEFAULT_MODEL: "gemma4:e4b"
+      OPENCLAW_GATEWAY_MODE: local
+      OPENCLAW_GATEWAY_BIND: lan
+    volumes:
+      - ./data/openclaw:/home/node/.openclaw
+      - ~/Documents/GitHubPrivate:/workspace
+      - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
+    restart: always
+
+networks:
+  default:
+    name: ai-agent-network
+
+  # 3. OpenClaw (에이전트)
+  #   openclaw:
+  #     build:
+  #       context: .
+  #       dockerfile: Dockerfile.openclaw
+  #     container_name: openclaw
+  #     environment:
+  #       - OLLAMA_BASE_URL=http://ollama:11434
+  #       - DEFAULT_MODEL=gemma4:e4b
+  #       # 에이전트의 기본 작업 디렉토리를 설정한 경로로 지정
+  #       - WORKSPACE_DIR=/workspace
+  #     volumes:
+  #       - ./data/openclaw:/app/config
+  #       - ~/Documents/GitHubPrivate:/workspace
+  #       - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
+  #     depends_on:
+  #       - ollama
+  #     restart: always

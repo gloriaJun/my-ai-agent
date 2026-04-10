@@ -1,0 +1,36 @@
+# --- [ Docker & Data ] ---
+# 대용량 모델 파일과 각 서비스의 실제 데이터는 제외합니다.
+data/
+# 혹시 모를 로그 파일들
+*.log
+logs/
+
+# --- [ Security & Environment ] ---
+# Discord 토큰, n8n 자격 증명 등이 포함된 환경 변수 파일
+.env
+# OpenClaw 온보딩 시 생성된 민감한 설정 파일들 (이미 data/에 포함되지만 명시적 보호)
+openclaw.json
+.openclaw/
+
+# --- [ OS Specific ] ---
+# macOS 전용 시스템 파일
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# --- [ Python & Node.js ] ---
+# (혹시 나중에 생길 수 있는 임시 파일들)
+__pycache__/
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.venv/
+venv/
+
+# --- [ IDE ] ---
+.vscode/
+.idea/
+*.swp
+*.bak
