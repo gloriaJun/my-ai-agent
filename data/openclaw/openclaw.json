@@ -3,10 +3,10 @@
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
-        "primary": "ollama/gemma4:e4b"
+        "primary": "ollama/gemma4:e4b-it-q4_K_M"
       },
       "models": {
-        "gemma4:e4b": {}
+        "gemma4:e4b-it-q4_K_M": {}
       }
     }
   },
@@ -49,12 +49,12 @@
     "mode": "merge",
     "providers": {
       "ollama": {
-        "baseUrl": "http://ollama:11434",
+        "baseUrl": "http://host.docker.internal:11434",
         "api": "ollama",
         "apiKey": "OLLAMA_API_KEY",
         "models": [
           {
-            "id": "gemma4:e4b",
+            "id": "gemma4:e4b-it-q4_K_M",
             "name": "gemma4",
             "reasoning": false,
             "input": ["text"],

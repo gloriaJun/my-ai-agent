@@ -1,14 +1,25 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    environment:
-      TZ: Asia/Seoul
-    volumes:
-      - ./data/ollama:/root/.ollama
-    ports:
-      - "11434:11434"
-    restart: always
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   environment:
+  #     TZ: Asia/Seoul
+  #   volumes:
+  #     - ./data/ollama:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 16G
+  #       reservations:
+  #         memory: 4G
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "50m"
+  #       max-file: "3"
+  #   restart: unless-stopped
 
   n8n:
     image: n8nio/n8n:latest
@@ -18,14 +29,23 @@ services:
     environment:
       TZ: Asia/Seoul
       N8N_LOG_LEVEL: info
-      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_HOST: http://host.docker.internal:11434
     volumes:
       - ./data/n8n:/home/node/.n8n
       - ~/Documents/GitHubPrivate:/workspace
       - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
-    restart: always
-    depends_on:
-      - ollama
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+    restart: unless-stopped
+    # depends_on:
+    #   - ollama
 
   n8n-work:
     image: n8nio/n8n:latest
@@ -35,14 +55,23 @@ services:
     environment:
       - TZ=Asia/Seoul
       - N8N_LOG_LEVEL=info
-      - OLLAMA_HOST=http://ollama:11434 # 기존 ai-agent-network의 ollama 호출
+      - OLLAMA_HOST=http://host.docker.internal:11434 # 기존 ai-agent-network의 ollama 호출
       - N8N_BLOCK_FS_WRITE_ACCESS=false
     volumes:
       - ./data-work/n8n:/home/node/.n8n
       - ~/Documents/GitHubWork:/workspace
-    restart: always
-    depends_on:
-      - ollama
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+    restart: unless-stopped
+    # depends_on:
+    #   - ollama
 
   openclaw:
     image: ghcr.io/openclaw/openclaw:latest
@@ -51,8 +80,8 @@ services:
       - "18789:18789"
     environment:
       TZ: Asia/Seoul
-      OLLAMA_BASE_URL: http://ollama:11434
-      DEFAULT_MODEL: "gemma4:e4b"
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      DEFAULT_MODEL: "gemma4:e4b-it-q4_K_M"
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       DISCORD_BOOKING_BOT_TOKEN: ${DISCORD_BOOKING_BOT_TOKEN}
       OPENCLAW_GATEWAY_MODE: local
@@ -61,9 +90,18 @@ services:
       - ./data/openclaw:/home/node/.openclaw
       - ~/Documents/GitHubPrivate:/workspace
       - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
-    depends_on:
-      - ollama
+    # depends_on:
+    #   - ollama
 
 networks:
   default:
