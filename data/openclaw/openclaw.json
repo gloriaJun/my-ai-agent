@@ -1,0 +1,109 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "/home/node/.openclaw/workspace",
+      "model": {
+        "primary": "ollama/gemma4:e4b"
+      },
+      "models": {
+        "gemma4:e4b": {}
+      }
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    },
+    "port": 18789,
+    "bind": "lan",
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "controlUi": {
+      "allowedOrigins": ["*"],
+      "allowInsecureAuth": true
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "contacts.add",
+        "calendar.add",
+        "reminders.add",
+        "sms.send",
+        "sms.search"
+      ]
+    }
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "tools": {
+    "profile": "coding"
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://ollama:11434",
+        "api": "ollama",
+        "apiKey": "OLLAMA_API_KEY",
+        "models": [
+          {
+            "id": "gemma4:e4b",
+            "name": "gemma4",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 128000,
+            "maxTokens": 8192
+          }
+        ]
+      }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "ollama:default": {
+        "provider": "ollama",
+        "mode": "api_key"
+      }
+    }
+  },
+  "channels": {
+    "discord": {
+      "enabled": true,
+      "token": "${DISCORD_BOOKING_BOT_TOKEN}",
+      "groupPolicy": "allowlist",
+      "guilds": {
+        "*": {}
+      }
+    }
+  },
+  "wizard": {
+    "lastRunAt": "2026-04-10T13:11:04.602Z",
+    "lastRunVersion": "2026.4.9",
+    "lastRunCommand": "onboard",
+    "lastRunMode": "local"
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.4.9",
+    "lastTouchedAt": "2026-04-10T14:07:45.922Z"
+  },
+  "plugins": {
+    "entries": {
+      "ollama": {
+        "enabled": true
+      }
+    }
+  }
+}
