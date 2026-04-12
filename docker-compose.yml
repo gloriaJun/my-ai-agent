@@ -31,12 +31,11 @@ services:
     environment:
       TZ: Asia/Seoul
       N8N_LOG_LEVEL: info
-      # N8N_PATH: ${N8N_BASE_PATH:-/}
+      N8N_PATH: ${N8N_BASE_PATH:-/}
       OLLAMA_HOST: http://host.docker.internal:11434
       WEBHOOK_URL: ${WEBHOOK_URL}
     volumes:
       - ./data/n8n:/home/node/.n8n
-      # - ~/my-ai-agent:/workspace/my-ai-agent:ro
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
     deploy:
@@ -73,7 +72,6 @@ services:
       - ./data/openclaw:/home/node/.openclaw
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
-      # - ~/my-ai-agent:/workspace/my-ai-agent:ro
     deploy:
       resources:
         limits:
