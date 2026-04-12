@@ -49,7 +49,7 @@ services:
     environment:
       TZ: Asia/Seoul
       N8N_LOG_LEVEL: info
-      N8N_PATH: ${N8N_BASE_PATH:-/}
+      # N8N_PATH: ${N8N_BASE_PATH:-/}
       OLLAMA_HOST: http://host.docker.internal:11434
       WEBHOOK_URL: ${WEBHOOK_URL}
     volumes:
@@ -87,6 +87,7 @@ services:
       OPENCLAW_GATEWAY_MODE: local
       OPENCLAW_GATEWAY_BIND: 0.0.0.0
     volumes:
+      - ./config/openclaw.json:/home/node/.openclaw/openclaw.json
       - ./data/openclaw:/home/node/.openclaw
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
