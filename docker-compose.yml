@@ -70,6 +70,7 @@ services:
     volumes:
       - ./config/openclaw.json:/home/node/.openclaw/openclaw.json
       - ./data/openclaw:/home/node/.openclaw
+      - ./.env:/home/node/.openclaw/.env:ro
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
     command: ["openclaw", "gateway", "run"]
