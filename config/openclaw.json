@@ -5,6 +5,9 @@
       "model": {
         "primary": "ollama/llama3.2:3b"
       },
+      "compaction": {
+        "reserveTokensFloor": 20000
+      },
       "models": {
         "llama3.2:3b": {}
       }
@@ -65,7 +68,7 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 16384,
+            "contextWindow": 32768,
             "maxTokens": 4096
           }
         ]
