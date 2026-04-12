@@ -1,22 +1,4 @@
 services:
-  nginx-proxy:
-    image: "jc21/nginx-proxy-manager:latest"
-    container_name: nginx-proxy
-    restart: unless-stopped
-    ports:
-      - "80:80" # 외부 HTTP 접속
-      - "443:443" # 외부 HTTPS 접속
-      - "81:81" # NPM 관리자 페이지
-    environment:
-      - TZ=Asia/Seoul
-    volumes:
-      - ./data/nginx/config:/data
-      - ./data/nginx/letsencrypt:/etc/letsencrypt
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - default
-
   # ollama:
   #   image: ollama/ollama:latest
   #   container_name: ollama
@@ -54,7 +36,7 @@ services:
       WEBHOOK_URL: ${WEBHOOK_URL}
     volumes:
       - ./data/n8n:/home/node/.n8n
-      - ~/my-ai-agent:/workspace/my-ai-agent:ro
+      # - ~/my-ai-agent:/workspace/my-ai-agent:ro
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
     deploy:
@@ -91,7 +73,7 @@ services:
       - ./data/openclaw:/home/node/.openclaw
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
-      - ~/my-ai-agent:/workspace/my-ai-agent:ro
+      # - ~/my-ai-agent:/workspace/my-ai-agent:ro
     deploy:
       resources:
         limits:
@@ -108,4 +90,4 @@ services:
 networks:
   default:
     external: true
-    name: ai-agent-network
+    name: proxy-net

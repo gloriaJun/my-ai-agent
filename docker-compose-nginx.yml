@@ -1,0 +1,21 @@
+services:
+  nginx-proxy:
+    image: "jc21/nginx-proxy-manager:latest"
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80" # 외부 HTTP 접속
+      - "443:443" # 외부 HTTPS 접속
+      - "81:81" # NPM 관리자 페이지
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      - ./data/nginx/config:/data
+      - ./data/nginx/letsencrypt:/etc/letsencrypt
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  default:
+    external: true
+    name: proxy-net
