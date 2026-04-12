@@ -10,8 +10,8 @@ services:
     environment:
       - TZ=Asia/Seoul
     volumes:
-      - ./data/nginx/config:/data
-      - ./data/nginx/letsencrypt:/etc/letsencrypt
+      - ./config/nginx/data:/data
+      - ./config/nginx/letsencrypt:/etc/letsencrypt
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
