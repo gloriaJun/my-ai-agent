@@ -3,10 +3,10 @@
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
-        "primary": "ollama/gemma4:e4b"
+        "primary": "ollama/llama3.2:3b"
       },
       "models": {
-        "gemma4:e4b": {}
+        "llama3.2:3b": {}
       }
     }
   },
@@ -55,8 +55,8 @@
         "apiKey": "OLLAMA_API_KEY",
         "models": [
           {
-            "id": "gemma4:e4b",
-            "name": "gemma4",
+            "id": "llama3.2:3b",
+            "name": "llama3.2",
             "reasoning": false,
             "input": ["text"],
             "cost": {
