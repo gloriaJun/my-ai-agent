@@ -3,13 +3,16 @@
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
-        "primary": "ollama/llama3.2:3b"
+        "primary": "ollama/qwen2.5:1.5b"
       },
       "compaction": {
         "reserveTokensFloor": 20000
       },
+      "llm": {
+        "idleTimeoutSeconds": 300
+      },
       "models": {
-        "llama3.2:3b": {}
+        "qwen2.5:1.5b": {}
       }
     }
   },
@@ -58,8 +61,8 @@
         "apiKey": "OLLAMA_API_KEY",
         "models": [
           {
-            "id": "llama3.2:3b",
-            "name": "llama3.2",
+            "id": "qwen2.5:1.5b",
+            "name": "qwen2.5",
             "reasoning": false,
             "input": ["text"],
             "cost": {
