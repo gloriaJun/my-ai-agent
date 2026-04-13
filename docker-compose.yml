@@ -68,7 +68,6 @@ services:
       OPENCLAW_GATEWAY_MODE: local
       OPENCLAW_GATEWAY_BIND: 0.0.0.0
     volumes:
-      - ./config/openclaw.json:/home/node/.openclaw/openclaw.json
       - ./data/openclaw:/home/node/.openclaw
       - ./.env:/home/node/.openclaw/.env:ro
       # - ~/Documents/GitHubPrivate:/workspace
