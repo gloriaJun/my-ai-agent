@@ -24,7 +24,7 @@
     },
     "port": 18789,
     "bind": "0.0.0.0",
-    "trustedProxies": ["172.16.0.0/12", "192.168.0.0/16", "127.0.0.1"],
+    "trustedProxies": ["172.16.0.0/12", "127.0.0.1", "::1"],
     "tailscale": {
       "mode": "off",
       "resetOnExit": false
