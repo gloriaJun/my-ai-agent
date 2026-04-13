@@ -64,19 +64,29 @@ case "$1" in
         ;;
         
     exec)
-        echo -e "${BLUE}접속할 컨테이너를 선택하세요.${NC}"
+        echo -e "${BLUE}명령을 수행할 컨테이너를 선택하세요.${NC}"
         select_container
         
         # 실행 중인지 확인
-        state=$(docker inspect --format='{{.State.Running}}' "$selected_name")
-        if [ "$state" == "false" ]; then
-            echo -e "${RED}에러: '${selected_name}' 컨테이너가 실행 중이 아닙니다.${NC}"
+        state=$(docker inspect --format='{{.State.Status}}' "$selected_name")
+        if [ "$state" != "running" ]; then
+            echo -e "${RED}에러: '${selected_name}' 컨테이너가 실행 중이 아닙니다. (현재 상태: $state)${NC}"
             exit 1
         fi
 
-        echo -e "${GREEN}>>> ${selected_name} 내부 접속 중...${NC}"
-        # bash 시도 후 실패 시 sh로 시도
-        docker exec -it "$selected_name" /bin/bash 2>/dev/null || docker exec -it "$selected_name" /bin/sh
+        # 실행할 명령어 입력 받기
+        echo -e "${YELLOW}실행할 명령어를 입력하세요 (예: cat /path/to/file)${NC}"
+        read -p "명령어 (미입력 시 셸 접속): " user_cmd
+
+        if [ -z "$user_cmd" ]; then
+            # 입력이 없으면 기존처럼 셸 접속
+            echo -e "${GREEN}>>> ${selected_name} 내부 셸 접속 중...${NC}"
+            docker exec -it "$selected_name" /bin/bash 2>/dev/null || docker exec -it "$selected_name" /bin/sh
+        else
+            # 입력이 있으면 해당 명령어 수행
+            echo -e "${GREEN}>>> ${selected_name} 에서 명령어 실행: ${user_cmd}${NC}"
+            docker exec -it "$selected_name" $user_cmd
+        fi
         ;;
         
     help|*)

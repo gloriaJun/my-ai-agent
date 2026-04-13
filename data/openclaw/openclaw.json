@@ -24,12 +24,9 @@
     },
     "port": 18789,
     "bind": "0.0.0.0",
-    "trustedProxies": ["172.16.0.0/12", "127.0.0.1", "::1"],
-    "tailscale": {
-      "mode": "off",
-      "resetOnExit": false
-    },
     "controlUi": {
+      "enabled": true,
+      "basePath": "/",
       "allowedOrigins": ["*"],
       "allowInsecureAuth": true
     },
@@ -111,6 +108,12 @@
       "ollama": {
         "enabled": true
       }
+    }
+  },
+  "env": {
+    "shellEnv": {
+      "enabled": true,
+      "timeoutMs": 15000
     }
   }
 }
