@@ -61,6 +61,7 @@
         "models": []
       },
       "google": {
+        "baseUrl": "https://generativelanguage.googleapis.com",
         "api": "google-generative-ai",
         "apiKey": "GEMINI_API_KEY",
         "models": [
@@ -90,7 +91,7 @@
           "requireMention": false,
           "channels": {
             "${DISCORD_BOOKING_CHANNEL_ID}": {
-              "allow": true,
+              "enabled": true,
               "requireMention": false
             }
           }
