@@ -60,7 +60,7 @@ case "$1" in
     start)
         select_container
         if [ "$selected_name" == "ALL" ]; then
-            docker-compose up -d
+            docker compose up -d
         else
             docker start "$selected_name"
         fi
@@ -69,7 +69,7 @@ case "$1" in
     stop)
         select_container
         if [ "$selected_name" == "ALL" ]; then
-            docker-compose stop
+            docker compose stop
         else
             docker stop "$selected_name"
         fi
@@ -78,7 +78,7 @@ case "$1" in
     restart)
         select_container
         if [ "$selected_name" == "ALL" ]; then
-            docker-compose restart
+            docker compose restart
         else
             docker restart "$selected_name"
         fi
