@@ -8,7 +8,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 render_openclaw_config_if_needed() {
-    if [ -f "./scripts/render-openclaw-config.sh" ] && [ -f "./data/openclaw/openclaw.template.json" ]; then
+    if [ -f "./scripts/render-openclaw-config.sh" ] && [ -f "./config/openclaw/openclaw.template.json" ]; then
         chmod +x ./scripts/render-openclaw-config.sh
         ./scripts/render-openclaw-config.sh >/dev/null
     fi

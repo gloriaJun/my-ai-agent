@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEMPLATE_PATH="${ROOT_DIR}/data/openclaw/openclaw.template.json"
+TEMPLATE_PATH="${ROOT_DIR}/config/openclaw/openclaw.template.json"
 OUTPUT_PATH="${ROOT_DIR}/data/openclaw/openclaw.json"
 ENV_PATH="${ROOT_DIR}/.env"
 

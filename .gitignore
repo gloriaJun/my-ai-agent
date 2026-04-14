@@ -1,6 +1,6 @@
 # --- [ Security & Environment ] ---
 .env
-data/openclaw/openclaw.json
+data/
 
 # --- [ OS Specific ] ---
 # macOS 전용 시스템 파일
