@@ -4,6 +4,12 @@
 docker network create ai-agent-network 2>/dev/null || true
 mkdir -p ./data/ollama ./data/n8n ./data/openclaw
 
+# OpenClaw 설정 템플릿 렌더링 (.env -> openclaw.json)
+if [ -f "./scripts/render-openclaw-config.sh" ] && [ -f "./data/openclaw/openclaw.template.json" ]; then
+    chmod +x ./scripts/render-openclaw-config.sh
+    ./scripts/render-openclaw-config.sh
+fi
+
 # 2. Ollama 서비스를 먼저 기동 (OpenClaw 설정 시 응답할 수 있도록)
 echo "Starting Ollama first for configuration..."
 docker-compose up -d ollama

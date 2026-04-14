@@ -7,6 +7,13 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+render_openclaw_config_if_needed() {
+    if [ -f "./scripts/render-openclaw-config.sh" ] && [ -f "./data/openclaw/openclaw.template.json" ]; then
+        chmod +x ./scripts/render-openclaw-config.sh
+        ./scripts/render-openclaw-config.sh >/dev/null
+    fi
+}
+
 # 도움말 출력
 show_help() {
     echo -e "${BLUE}Usage:${NC} sh ./ctl.sh [COMMAND]"
@@ -60,6 +67,7 @@ select_container() {
 # 메인 로직
 case "$1" in
     start)
+        render_openclaw_config_if_needed
         select_container
         if [ "$selected_name" == "ALL" ]; then
             docker compose up -d
@@ -78,6 +86,7 @@ case "$1" in
         ;;
         
     restart)
+        render_openclaw_config_if_needed
         select_container
         if [ "$selected_name" == "ALL" ]; then
             docker compose restart
