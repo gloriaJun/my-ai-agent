@@ -28,10 +28,11 @@ services:
     # - "5678:5678"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
     environment:
       TZ: Asia/Seoul
       N8N_LOG_LEVEL: info
-      N8N_PATH: ${N8N_BASE_PATH:-/}
       OLLAMA_HOST: http://host.docker.internal:11434
       WEBHOOK_URL: ${WEBHOOK_URL}
     volumes:
