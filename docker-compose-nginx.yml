@@ -7,6 +7,7 @@ services:
       - "80:80" # 외부 HTTP 접속
       - "443:443" # 외부 HTTPS 접속
       - "81:81" # NPM 관리자 페이지
+      - "5678:5678" # n8n 접속
     environment:
       - TZ=Asia/Seoul
     volumes:
