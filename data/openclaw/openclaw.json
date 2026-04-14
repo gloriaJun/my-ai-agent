@@ -52,13 +52,23 @@
     "profile": "coding"
   },
   "models": {
-    "mode": "merge",
+    "mode": "replace",
     "providers": {
       "ollama": {
         "baseUrl": "http://host.docker.internal:11434",
         "api": "ollama",
         "apiKey": "OLLAMA_API_KEY",
         "models": []
+      },
+      "google": {
+        "api": "google-generative-ai",
+        "apiKey": "GEMINI_API_KEY",
+        "models": [
+          {
+            "id": "gemini-2.5-flash",
+            "name": "gemini-2.5-flash"
+          }
+        ]
       }
     }
   },
