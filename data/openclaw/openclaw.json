@@ -87,10 +87,10 @@
       "token": "${DISCORD_BOOKING_BOT_TOKEN}",
       "groupPolicy": "allowlist",
       "guilds": {
-        "${DISCORD_SERVER_ID}": {
+        "1491767159968497867": {
           "requireMention": false,
           "channels": {
-            "${DISCORD_BOOKING_CHANNEL_ID}": {
+            "1491767160857559183": {
               "enabled": true,
               "requireMention": false
             }
