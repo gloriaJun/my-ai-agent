@@ -63,7 +63,17 @@ docker-compose up -d --build
 
 ```bash
 docker-compose up -d --build
-````
+```
+
+OpenClaw 이미지 업데이트를 실제 실행 컨테이너에 반영하려면, 아래처럼 재생성이 필요합니다.
+
+```bash
+docker compose up -d --force-recreate openclaw
+```
+
+주의:
+- `--force-recreate`는 컨테이너를 다시 만드는 옵션이며, Ollama 모델 파일을 자동 업데이트하지 않습니다.
+- Ollama 모델 업데이트는 `ollama pull <모델명>`을 별도로 실행해야 합니다.
 
 ### 2. 시스템 중지
 
@@ -85,4 +95,37 @@ docker-compose logs -f openclaw
 
 ```bash
 docker exec -it <container_name> bash
+```
+
+## 🔐 OpenClaw 페어링 승인 절차 (원격 서버)
+
+`https://<도메인>/openclaw`로 접속할 때 브라우저 프로필이 바뀌면, OpenClaw에서 새 디바이스로 인식되어 pairing 승인이 필요할 수 있습니다.
+
+### 1. 현재 pairing 상태 조회
+
+```bash
+sh ./ctl.sh pair-list
+```
+
+기본 원격 호스트는 `ocl`이며, 다른 호스트를 쓰려면:
+
+```bash
+REMOTE_HOST=<your-host> sh ./ctl.sh pair-list
+```
+
+### 2. 최신 pending 요청 자동 승인
+
+```bash
+sh ./ctl.sh approve-pair
+```
+
+동작 방식:
+- `devices approve --latest`로 최신 요청 ID 추출
+- 해당 `requestId`를 `devices approve <requestId>`로 실제 승인
+- 승인 후 `devices list`로 결과 확인
+
+다른 호스트를 쓰려면:
+
+```bash
+REMOTE_HOST=<your-host> sh ./ctl.sh approve-pair
 ```

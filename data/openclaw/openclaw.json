@@ -86,7 +86,15 @@
       "token": "${DISCORD_BOOKING_BOT_TOKEN}",
       "groupPolicy": "allowlist",
       "guilds": {
-        "*": {}
+        "${DISCORD_SERVER_ID}": {
+          "requireMention": false,
+          "channels": {
+            "${DISCORD_BOOKING_CHANNEL_ID}": {
+              "allow": true,
+              "requireMention": false
+            }
+          }
+        }
       }
     }
   },

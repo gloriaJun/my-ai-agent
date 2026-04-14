@@ -15,6 +15,8 @@ show_help() {
     echo -e "  ${GREEN}start${NC}   : 컨테이너 시작"
     echo -e "  ${GREEN}stop${NC}    : 컨테이너 중지"
     echo -e "  ${GREEN}restart${NC} : 컨테이너 재시작"
+    echo -e "  ${GREEN}pair-list${NC} : OpenClaw 페어링 상태 조회(원격)"
+    echo -e "  ${GREEN}approve-pair${NC} : OpenClaw 최신 pending 페어링 승인(원격)"
     echo -e "  ${GREEN}help${NC}    : 도움말 보기"
 }
 
@@ -82,6 +84,35 @@ case "$1" in
         else
             docker restart "$selected_name"
         fi
+        ;;
+
+    pair-list)
+        REMOTE_HOST="${REMOTE_HOST:-ocl}"
+        echo -e "${YELLOW}>>> 원격 OpenClaw 페어링 상태 조회: ${REMOTE_HOST}${NC}"
+        ssh "$REMOTE_HOST" "docker exec openclaw node dist/index.js devices list"
+        ;;
+
+    approve-pair)
+        REMOTE_HOST="${REMOTE_HOST:-ocl}"
+        echo -e "${YELLOW}>>> 원격 OpenClaw 최신 pending 요청 확인: ${REMOTE_HOST}${NC}"
+
+        request_id=$(
+            ssh "$REMOTE_HOST" \
+            "docker exec openclaw node dist/index.js devices approve --latest 2>/dev/null \
+            | sed -n 's/^Approve this exact request with: openclaw devices approve //p' \
+            | head -n1"
+        )
+
+        if [ -z "$request_id" ]; then
+            echo -e "${RED}승인할 pending 요청이 없습니다.${NC}"
+            exit 1
+        fi
+
+        echo -e "${BLUE}요청 ID:${NC} ${request_id}"
+        echo -e "${YELLOW}>>> pending 요청 승인 실행${NC}"
+        ssh "$REMOTE_HOST" "docker exec openclaw node dist/index.js devices approve ${request_id}"
+        echo -e "${YELLOW}>>> 승인 후 상태 확인${NC}"
+        ssh "$REMOTE_HOST" "docker exec openclaw node dist/index.js devices list"
         ;;
 
     help|*)
