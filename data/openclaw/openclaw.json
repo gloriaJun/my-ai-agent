@@ -3,7 +3,8 @@
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
-        "primary": "ollama/qwen2.5:1.5b"
+        "primary": "ollama/llama3.1:8b",
+        "fallbacks": ["google/gemini-2.5-flash"]
       },
       "compaction": {
         "reserveTokensFloor": 20000
@@ -12,7 +13,8 @@
         "idleTimeoutSeconds": 300
       },
       "models": {
-        "qwen2.5:1.5b": {}
+        "ollama/llama3.1:8b": {},
+        "google/gemini-2.5-flash": {}
       }
     }
   },
@@ -23,7 +25,7 @@
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
     "port": 18789,
-    "bind": "0.0.0.0",
+    "bind": "lan",
     "controlUi": {
       "enabled": true,
       "basePath": "/",
@@ -56,22 +58,7 @@
         "baseUrl": "http://host.docker.internal:11434",
         "api": "ollama",
         "apiKey": "OLLAMA_API_KEY",
-        "models": [
-          {
-            "id": "qwen2.5:1.5b",
-            "name": "qwen2.5",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 32768,
-            "maxTokens": 4096
-          }
-        ]
+        "models": []
       }
     }
   },
@@ -100,8 +87,8 @@
     "lastRunMode": "local"
   },
   "meta": {
-    "lastTouchedVersion": "2026.4.9",
-    "lastTouchedAt": "2026-04-10T14:07:45.922Z"
+    "lastTouchedVersion": "2026.4.14",
+    "lastTouchedAt": "2026-04-14T17:54:35.662Z"
   },
   "plugins": {
     "entries": {
