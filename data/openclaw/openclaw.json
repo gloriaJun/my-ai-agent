@@ -27,7 +27,7 @@
     "controlUi": {
       "enabled": true,
       "basePath": "/",
-      "allowedOrigins": ["*"],
+      "allowedOrigins": ["*", "https://gloriajun.duckdns.org"],
       "allowInsecureAuth": true
     },
     "nodes": {
@@ -55,7 +55,7 @@
       "ollama": {
         "baseUrl": "http://host.docker.internal:11434",
         "api": "ollama",
-        "apiKey": "OLLAMA_API_KEY",
+        "apiKey": "${OLLAMA_API_KEY}",
         "models": [
           {
             "id": "qwen2.5:1.5b",
