@@ -3,7 +3,7 @@
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
-        "primary": "ollama/llama3.1:8b",
+        "primary": "ollama/llama3.2:3b",
         "fallbacks": ["google/gemini-2.5-flash"]
       },
       "compaction": {
@@ -13,7 +13,7 @@
         "idleTimeoutSeconds": 300
       },
       "models": {
-        "ollama/llama3.1:8b": {},
+        "ollama/llama3.2:3b": {},
         "google/gemini-2.5-flash": {}
       }
     }

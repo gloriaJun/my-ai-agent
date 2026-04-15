@@ -43,7 +43,7 @@ echo "Starting all services..."
 docker-compose up -d
 
 # 5. 모델 다운로드
-echo "Pulling AI Model (gemma4:e4b)..."
-docker exec -it ollama ollama pull gemma4:e4b
+echo "Pulling AI Model (llama3.2:3b)..."
+docker exec -it ollama ollama pull llama3.2:3b
 
 echo "Success! http://localhost:18789"

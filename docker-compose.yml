@@ -64,7 +64,7 @@ services:
     environment:
       TZ: Asia/Seoul
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-      DEFAULT_MODEL: "qwen2.5:1.5b"
+      DEFAULT_MODEL: "llama3.2:3b"
     volumes:
       - ./data/openclaw:/home/node/.openclaw
       - ./.env:/home/node/.openclaw/.env:ro

@@ -53,7 +53,7 @@ brew services restart ollama
 ### 모델 다운로드
 
 ```bash
-ollama pull gemma4:e4b
+ollama pull llama3.2:3b
 ```
 
 ### DOCKER 컨테이너 실행
