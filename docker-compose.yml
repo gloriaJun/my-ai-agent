@@ -35,6 +35,7 @@ services:
       N8N_LOG_LEVEL: info
       OLLAMA_HOST: http://host.docker.internal:11434
       WEBHOOK_URL: ${WEBHOOK_URL}
+      N8N_TRUST_PROXY: true
     volumes:
       - ./data/n8n:/home/node/.n8n
       # - ~/Documents/GitHubPrivate:/workspace
