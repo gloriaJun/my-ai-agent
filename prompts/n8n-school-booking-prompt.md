@@ -66,6 +66,10 @@ Valid range: 06:00–21:30 in 30-min steps.
 | type | `practice` (연습실) · `lesson` (레슨실) · "실기실" → practice · default: `lesson` |
 | duration | 30 / 60 / 90 / 120 min · default 60 · "2시간"→120 · "1시간 반"→90 |
 
+**Facility name mapping:** "레슨실" and "연습실" are values for `type`, never for `room`. `room` is a numeric room number only (e.g. 3).
+
+**Optional fields:** Omit `room` and `recurring_name` entirely when not explicitly provided. Never send empty string or null.
+
 ---
 
 ## Tool Selection
