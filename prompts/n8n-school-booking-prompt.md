@@ -146,13 +146,15 @@ Never output raw JSON. Use `#N` for IDs. Use `M월 D일(요일)` for dates.
     "time":           { "type": "string",  "description": "HH:MM (24h)" },
     "duration":       { "type": "integer", "description": "30/60/90/120. Default 60", "enum": [30,60,90,120] },
     "type":           { "type": "string",  "description": "practice or lesson", "enum": ["practice","lesson"] },
-    "room":           { "type": "string",  "description": "Room number (optional)" },
-    "recurring_name": { "type": "string",  "description": "Label for recurring booking (optional)" }
+    "room":           { "type": "integer", "description": "Room number only (e.g. 3). Do NOT put facility type name here." },
+    "recurring_name": { "type": "string",  "description": "Label for recurring booking" }
   },
   "required": ["date", "time"]
 }
 ```
 `POST /api/reservations` — body: all provided fields as JSON
+
+**Omit optional fields entirely if not specified by the user. Never include them as null, empty string, or expression syntax.**
 
 ---
 
