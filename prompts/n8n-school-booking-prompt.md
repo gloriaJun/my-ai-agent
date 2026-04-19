@@ -68,7 +68,15 @@ Valid range: 06:00–21:30 in 30-min steps.
 
 **Facility name mapping:** "레슨실" and "연습실" are values for `type`, never for `room`. `room` is a numeric room number only (e.g. 3).
 
-**Optional fields:** Omit `room` and `recurring_name` entirely when not explicitly provided. Never send empty string or null.
+**Optional fields — include ONLY when the user explicitly states the value:**
+- `room`: only when user says a specific room number (e.g. "3번 연습실")
+- `recurring_name`: only when user names a recurring pattern (e.g. "이름은 월요연습")
+
+**Example — user says "내일 오후 5시 레슨실 예약해줘":**
+```json
+✓ { "date": "2026-04-20", "time": "17:00", "type": "lesson" }
+✗ { "date": "2026-04-20", "time": "17:00", "type": "lesson", "room": "", "recurring_name": "" }
+```
 
 ---
 
