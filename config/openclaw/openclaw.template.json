@@ -3,8 +3,7 @@
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
-        "primary": "ollama/llama3.2:3b",
-        "fallbacks": ["google/gemini-2.5-flash"]
+        "primary": "google/gemini-2.5-flash"
       },
       "compaction": {
         "reserveTokensFloor": 20000
@@ -13,7 +12,6 @@
         "idleTimeoutSeconds": 300
       },
       "models": {
-        "ollama/llama3.2:3b": {},
         "google/gemini-2.5-flash": {}
       }
     }
@@ -54,12 +52,6 @@
   "models": {
     "mode": "replace",
     "providers": {
-      "ollama": {
-        "baseUrl": "http://host.docker.internal:11434",
-        "api": "ollama",
-        "apiKey": "OLLAMA_API_KEY",
-        "models": []
-      },
       "google": {
         "baseUrl": "https://generativelanguage.googleapis.com",
         "api": "google-generative-ai",
@@ -70,14 +62,6 @@
             "name": "gemini-2.5-flash"
           }
         ]
-      }
-    }
-  },
-  "auth": {
-    "profiles": {
-      "ollama:default": {
-        "provider": "ollama",
-        "mode": "api_key"
       }
     }
   },
@@ -110,13 +94,6 @@
   "meta": {
     "lastTouchedVersion": "2026.4.14",
     "lastTouchedAt": "2026-04-14T17:54:35.662Z"
-  },
-  "plugins": {
-    "entries": {
-      "ollama": {
-        "enabled": true
-      }
-    }
   },
   "env": {
     "shellEnv": {
