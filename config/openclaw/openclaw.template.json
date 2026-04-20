@@ -86,21 +86,13 @@
       "enabled": true,
       "token": "${DISCORD_BOOKING_BOT_TOKEN}",
       "groupPolicy": "allowlist",
-      "destinations": {
-        "n8n_booking": {
-          "type": "webhook",
-          "url": "${N8N_BOOKING_WEBHOOK_URL}",
-          "method": "POST"
-        }
-      },
       "guilds": {
         "__DISCORD_SERVER_ID__": {
           "requireMention": false,
           "channels": {
             "__DISCORD_BOOKING_CHANNEL_ID__": {
               "enabled": true,
-              "requireMention": false,
-              "destination": "n8n_booking"
+              "requireMention": false
             }
           }
         }
