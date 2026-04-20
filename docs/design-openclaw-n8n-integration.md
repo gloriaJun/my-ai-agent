@@ -51,48 +51,72 @@ n8n Switch 노드는 `?mode=` 값만 보고 라우팅한다. AI 판단 없음.
 
 ### 채널 행동 정의 (`openclaw.template.json`)
 
-채널 목적과 허용 스킬을 `systemPrompt` + `skills`로 정의한다.
+채널 scope 제한과 언어 지시만 `systemPrompt`에 정의한다.
+수집 항목·webhook 호출 등 실행 상세는 skill 파일에 위임하여 중복을 피한다.
 
 ```json
 "__DISCORD_BOOKING_CHANNEL_ID__": {
   "enabled": true,
   "requireMention": false,
-  "skills": ["school-booking", "sports-booking", "camping-booking"],
-  "systemPrompt": "이 채널은 예약 전용입니다. 예약 종류를 파악하고 필요한 정보를 모두 수집한 뒤 적합한 스킬을 호출하세요. 예약과 무관한 요청에는 응답하지 마세요."
+  "skills": ["school-booking"],
+  "systemPrompt": "This channel is for school room reservations only. For any other request, reply briefly that this channel is for reservations only and stop. Always respond in the same language the user used."
 }
 ```
 
-### 예약별 도구 정의 (`data/openclaw/workspace/skills/`)
+**systemPrompt 작성 원칙:**
+- 채널 scope 제한 (off-topic 차단)과 언어 지시만 기술한다
+- skill 파일에 이미 정의된 내용은 반복하지 않는다
+- 지침은 영어로 작성하고, 사용자에게는 요청 언어로 응답하도록 명시한다
 
-각 예약 타입별 SKILL.md 파일로 수집 정보, webhook URL, JSON 구조를 정의한다.
+### 예약별 도구 정의 (`prompts/openclaw/skills/`)
+
+각 예약 타입별 skill 파일로 수집 정보, webhook URL, JSON 구조를 정의한다.
+`data/` 와 분리하여 소스로 관리하고, docker volume으로 컨테이너 workspace에 마운트한다.
 
 ```
-data/openclaw/workspace/
+prompts/openclaw/
 └── skills/
-    ├── school-booking.md
-    ├── sports-booking.md
-    └── camping-booking.md
+    ├── school-booking.md       ← 구현됨
+    ├── sports-booking.md       ← 미구현 (확장 예정)
+    └── camping-booking.md      ← 미구현 (확장 예정)
 ```
 
-SKILL.md 구조 예시 (`school-booking.md`):
+**docker-compose.yml 마운트 설정:**
+
+```yaml
+volumes:
+  - ./data/openclaw:/home/node/.openclaw
+  - ./.env:/home/node/.openclaw/.env:ro
+  - ./prompts/openclaw/skills:/home/node/.openclaw/workspace/skills:ro
+```
+
+`:ro` (read-only) 마운트로 컨테이너 내부 변조를 방지한다.
+
+**skill 파일 구조 (`school-booking.md`):**
 
 ```markdown
-# 학교 예약 스킬
+# School Booking Skill
 
-학교 연습실/레슨실 예약을 처리한다.
+Handles school practice room and lesson room reservations.
 
-## 수집 정보
-- 날짜 (date: YYYY-MM-DD)
-- 시간 (time: HH:MM)
-- 실 번호 (room: 숫자)
-- 반복 여부 (recurring: true/false)
+## Required Information
 
-## 실행
-모든 정보 수집 완료 후:
+| Field       | Key       | Format       |
+|-------------|-----------|--------------|
+| Date        | date      | YYYY-MM-DD   |
+| Start time  | time      | HH:MM        |
+| Room number | room      | integer      |
+| Recurring   | recurring | true / false |
 
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}?type=booking&mode=school" \
+## Execution
+
+curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school" \
   -H "Content-Type: application/json" \
   -d '{"date":"...","time":"...","room":...,"recurring":...}'
+
+## Language
+
+Respond in the same language the user used.
 ```
 
 ---
@@ -103,11 +127,11 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}?type=booking&mode=school" \
 
 | 변경 대상 | 작업 |
 |---|---|
-| `openclaw.template.json` | `skills` 목록에 새 스킬명 추가, `systemPrompt` 업데이트 |
-| `workspace/skills/` | `{new}-booking.md` 생성 |
+| `openclaw.template.json` | `skills` 목록에 새 스킬명 추가, `systemPrompt` scope 업데이트 |
+| `prompts/openclaw/skills/` | `{new}-booking.md` 생성 |
 | n8n | `mode={new}` 케이스 워크플로우 추가 |
 
-openclaw 재시작 없이 SKILL.md 파일 추가만으로 스킬 확장 가능.
+skill 파일 추가 후 `docker compose up -d --force-recreate openclaw` 로 재시작하면 반영된다.
 
 ---
 
@@ -116,5 +140,6 @@ openclaw 재시작 없이 SKILL.md 파일 추가만으로 스킬 확장 가능.
 | 파일 | 역할 |
 |---|---|
 | `config/openclaw/openclaw.template.json` | 채널 설정, systemPrompt, skills 목록 |
-| `data/openclaw/workspace/skills/` | 예약 타입별 SKILL.md |
+| `prompts/openclaw/skills/` | 예약 타입별 skill 파일 (소스 관리) |
+| `docker-compose.yml` | prompts → workspace/skills 볼륨 마운트 정의 |
 | `docs/openclaw-n8n-integration.md` | 이전 Forwarder 패턴 설계 (대체됨) |
