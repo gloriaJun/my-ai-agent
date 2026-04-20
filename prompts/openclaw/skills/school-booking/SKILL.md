@@ -17,14 +17,21 @@ Handles school practice room and lesson room reservations.
 
 ## Required Information
 
-Collect all of the following before executing:
+Collect the following before executing:
 
-| Field       | Key       | Format       |
-|-------------|-----------|--------------|
-| Date        | date      | YYYY-MM-DD   |
-| Start time  | time      | HH:MM        |
-| Room number | room      | integer      |
-| Recurring   | recurring | true / false |
+| Field      | Key  | Format     | Required |
+|------------|------|------------|----------|
+| Date       | date | YYYY-MM-DD | ✅ |
+| Start time | time | HH:MM      | ✅ |
+
+**Optional fields** — include only if the user explicitly mentions them:
+
+| Field       | Key       | Format       | Default if omitted |
+|-------------|-----------|--------------|-------------------|
+| Room number | room      | integer      | omit from payload |
+| Recurring   | recurring | true / false | false             |
+
+Do not ask the user for room number or recurring — proceed without them if not mentioned.
 
 **Date handling:**
 - If the year is not specified, infer it from the current date in context.
@@ -34,9 +41,22 @@ Collect all of the following before executing:
 
 Once all fields are confirmed, send the following request and wait for the response:
 
+Build the JSON payload with required fields only, adding optional fields if provided:
+
+# Minimum payload (date + time only)
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school" \
   -H "Content-Type: application/json" \
-  -d '{"date":"...","time":"...","room":...,"recurring":...}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":false}'
+
+# With room number
+curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school" \
+  -H "Content-Type: application/json" \
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","room":1,"recurring":false}'
+
+# With recurring
+curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school" \
+  -H "Content-Type: application/json" \
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
 
 Only confirm the booking to the user after receiving a success response from the webhook.
 Include the full date with year (YYYY-MM-DD format rendered naturally) in the confirmation message.
