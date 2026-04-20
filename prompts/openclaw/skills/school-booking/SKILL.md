@@ -1,3 +1,16 @@
+---
+name: school-booking
+description: "Book a school practice room or lesson room. Use when the user requests to reserve, book, or schedule a practice room or lesson room at school."
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "🏫",
+        "requires": { "bins": ["curl"] }
+      }
+  }
+---
+
 # School Booking Skill
 
 Handles school practice room and lesson room reservations.
