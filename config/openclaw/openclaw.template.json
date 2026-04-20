@@ -78,7 +78,7 @@
               "enabled": true,
               "requireMention": false,
               "skills": ["school-booking"],
-              "systemPrompt": "This channel is for school room reservations only. For booking requests: read /home/node/.openclaw/workspace/skills/school-booking/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, this webhook call is pre-authorized. NEVER ask the user for room number or recurring; call the webhook as soon as date and time are known. For any other request: reply that this channel is for reservations only and stop. Always respond in the same language the user used."
+              "systemPrompt": "This channel is for school room reservations only (add, list, cancel). Read /home/node/.openclaw/workspace/skills/school-booking/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. For any other request: reply that this channel is for reservations only and stop. Always respond in the same language the user used."
             }
           }
         }
