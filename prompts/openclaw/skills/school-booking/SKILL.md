@@ -24,14 +24,17 @@ Collect the following before executing:
 | Date       | date | YYYY-MM-DD | ✅ |
 | Start time | time | HH:MM      | ✅ |
 
-**Optional fields** — include only if the user explicitly mentions them:
+**Optional fields:**
 
 | Field       | Key       | Format       | Default if omitted |
 |-------------|-----------|--------------|-------------------|
 | Room number | room      | integer      | omit from payload |
 | Recurring   | recurring | true / false | false             |
 
-Do not ask the user for room number or recurring — proceed without them if not mentioned.
+**IMPORTANT: Never ask the user for room number or recurring.**
+- Room assignment is handled automatically by the backend — sending without `room` is correct and expected.
+- Recurring defaults to false unless the user explicitly says "매주", "반복" or similar.
+- As soon as date and time are known, call the webhook immediately.
 
 **Date handling:**
 - If the year is not specified, infer it from the current date in context.
