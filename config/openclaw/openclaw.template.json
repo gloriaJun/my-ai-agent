@@ -28,7 +28,7 @@
     "bind": "lan",
     "controlUi": {
       "enabled": true,
-      "basePath": "/",
+      "basePath": "/openclaw/",
       "allowedOrigins": ["*", "https://gloriajun.duckdns.org"],
       "allowInsecureAuth": true
     },
