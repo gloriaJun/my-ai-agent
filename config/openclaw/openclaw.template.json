@@ -92,7 +92,9 @@
           "channels": {
             "__DISCORD_BOOKING_CHANNEL_ID__": {
               "enabled": true,
-              "requireMention": false
+              "requireMention": false,
+              "skills": ["school-booking"],
+              "systemPrompt": "This channel is for school room reservations only. For any other request, reply briefly that this channel is for reservations only and stop. Always respond in the same language the user used."
             }
           }
         }
