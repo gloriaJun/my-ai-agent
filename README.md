@@ -29,7 +29,7 @@ sh ./scripts/render-openclaw-config.sh
 
 - 템플릿 키: `__DISCORD_SERVER_ID__`, `__DISCORD_BOOKING_CHANNEL_ID__`
 - `.env` 필수 값: `DISCORD_SERVER_ID`, `DISCORD_BOOKING_CHANNEL_ID`
-- `setup.sh` / `scripts/ctl.sh start|restart` 실행 시 자동 렌더링됩니다.
+- `scripts/setup.sh` / `scripts/ctl.sh start|restart` 실행 시 자동 렌더링됩니다.
 
 ## 🛠 설치 및 운영 가이드
 
