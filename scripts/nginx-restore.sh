@@ -2,7 +2,8 @@
 set -euo pipefail
 
 REMOTE="${REMOTE_HOST:-ocl}"
-SRC="$(cd "$(dirname "$0")/../config/nginx" && pwd)/proxy-host.json"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SRC="$SCRIPT_DIR/../config/nginx/proxy-host.json"
 
 [ -f "$SRC" ] || { echo "❌ Not found: $SRC (먼저 nginx-backup을 실행하세요)"; exit 1; }
 

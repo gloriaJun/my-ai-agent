@@ -2,7 +2,8 @@
 set -euo pipefail
 
 REMOTE="${REMOTE_HOST:-ocl}"
-OUT_DIR="$(cd "$(dirname "$0")/../config/nginx" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+OUT_DIR="$SCRIPT_DIR/../config/nginx"
 mkdir -p "$OUT_DIR"
 
 echo ">>> 서버(${REMOTE})에서 nginx 설정 백업 중..."
