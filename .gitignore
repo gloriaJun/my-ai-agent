@@ -1,6 +1,7 @@
 # --- [ Security & Environment ] ---
 .env
-mcp.env
+.mcp.env
+.mcp.json
 data/
 
 # --- [ OS Specific ] ---

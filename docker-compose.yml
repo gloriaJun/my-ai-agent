@@ -38,6 +38,7 @@ services:
       WEBHOOK_URL: ${WEBHOOK_URL}
       N8N_TRUST_PROXY: true
       N8N_PROXY_HOPS: 1
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
     volumes:
       - ./data/n8n:/home/node/.n8n
       # - ~/Documents/GitHubPrivate:/workspace
