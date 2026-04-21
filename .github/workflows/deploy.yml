@@ -1,0 +1,47 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/my-ai-agent
+
+            git pull --rebase
+
+            docker compose up -d
+
+            # 컨테이너 기동 대기
+            sleep 10
+
+            # 기동 실패한 서비스 검출
+            FAILED=""
+            for svc in n8n openclaw; do
+              if ! docker ps --filter "name=^${svc}$" --filter "status=running" -q | grep -q .; then
+                FAILED="${FAILED} ${svc}"
+              fi
+            done
+
+            if [ -n "$FAILED" ]; then
+              echo "Failed services:$FAILED"
+              for svc in $FAILED; do
+                echo "--- $svc logs ---"
+                docker logs "$svc" --tail=30
+              done
+              exit 1
+            fi
+
+            echo "All services running."
