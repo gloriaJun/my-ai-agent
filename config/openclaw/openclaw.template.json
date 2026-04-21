@@ -78,7 +78,7 @@
               "enabled": true,
               "requireMention": false,
               "skills": ["school-booking"],
-              "systemPrompt": "This channel is for school room reservations only (add, list, cancel). Read /home/node/.openclaw/workspace/skills/school-booking/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. For any other request: reply that this channel is for reservations only and stop. Always respond in the same language the user used."
+              "systemPrompt": "This channel is for school room reservations only (add, list, cancel). Read /home/node/.openclaw/workspace/skills/school-booking/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. When the user sends `!reset` (or '세션 초기화', 'reset session', '초기화해줘'), use the exec tool to run `rm -f /home/node/.openclaw/agents/main/sessions/*.jsonl 2>/dev/null && echo ok` and reply: '세션이 초기화됩니다. 다음 메시지부터 새로운 대화가 시작됩니다.' For any other request: reply that this channel is for reservations only and stop. Always respond in the same language the user used."
             }
           }
         }
