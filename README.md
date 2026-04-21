@@ -29,7 +29,7 @@ sh ./scripts/render-openclaw-config.sh
 
 - 템플릿 키: `__DISCORD_SERVER_ID__`, `__DISCORD_BOOKING_CHANNEL_ID__`
 - `.env` 필수 값: `DISCORD_SERVER_ID`, `DISCORD_BOOKING_CHANNEL_ID`
-- `setup.sh` / `ctl.sh start|restart` 실행 시 자동 렌더링됩니다.
+- `setup.sh` / `scripts/ctl.sh start|restart` 실행 시 자동 렌더링됩니다.
 
 ## 🛠 설치 및 운영 가이드
 
@@ -68,77 +68,13 @@ docker-compose up -d --build
 - `/workspace`: 실제 작업 파일이 위치하는 로컬의 연결 경로
 
 
-## 🛠 실행 및 운영 명령어
 
-### 1. 시스템 시작 (최초 실행 및 업데이트 시)
+## 🛠 운영 스크립트
 
-새로운 설정을 반영하거나 이미지를 새로 빌드하며 실행합니다.
-
-```bash
-docker-compose up -d --build
-```
-
-OpenClaw 이미지 업데이트를 실제 실행 컨테이너에 반영하려면, 아래처럼 재생성이 필요합니다.
+컨테이너 관리, 로그 조회, 배포, OpenClaw 페어링 등 모든 운영 작업은 `scripts/ctl.sh`로 수행합니다.
 
 ```bash
-docker compose up -d --force-recreate openclaw
+bash ./scripts/ctl.sh help
 ```
 
-주의:
-- `--force-recreate`는 컨테이너를 다시 만드는 옵션이며, Ollama 모델 파일을 자동 업데이트하지 않습니다.
-- Ollama 모델 업데이트는 `ollama pull <모델명>`을 별도로 실행해야 합니다.
-
-### 2. 시스템 중지
-
-```bash
-docker-compose down
-```
-
-### 3. 로그 확인
-
-```bash
-# 전체 로그 확인
-docker-compose logs -f
-
-# 특정 서비스(예: openclaw) 로그만 확인
-docker-compose logs -f openclaw
-```
-
-### 4. 시스템 커맨드 실행
-
-```bash
-docker exec -it <container_name> bash
-```
-
-## 🔐 OpenClaw 페어링 승인 절차 (원격 서버)
-
-`https://<도메인>/openclaw`로 접속할 때 브라우저 프로필이 바뀌면, OpenClaw에서 새 디바이스로 인식되어 pairing 승인이 필요할 수 있습니다.
-
-### 1. 현재 pairing 상태 조회
-
-```bash
-sh ./ctl.sh pair-list
-```
-
-기본 원격 호스트는 `ocl`이며, 다른 호스트를 쓰려면:
-
-```bash
-REMOTE_HOST=<your-host> sh ./ctl.sh pair-list
-```
-
-### 2. 최신 pending 요청 자동 승인
-
-```bash
-sh ./ctl.sh approve-pair
-```
-
-동작 방식:
-- `devices approve --latest`로 최신 요청 ID 추출
-- 해당 `requestId`를 `devices approve <requestId>`로 실제 승인
-- 승인 후 `devices list`로 결과 확인
-
-다른 호스트를 쓰려면:
-
-```bash
-REMOTE_HOST=<your-host> sh ./ctl.sh approve-pair
-```
+명령어 목록 및 사용법은 스크립트 상단 주석을 참고하세요.
