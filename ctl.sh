@@ -122,7 +122,7 @@ case "$1" in
     deploy)
         echo -e "${YELLOW}>>> 원격 서버에 배포 중...${NC}"
         git push
-        ssh "${REMOTE_HOST:-ocl}" "cd ~/my-ai-agent && git pull --rebase && docker compose up -d"
+        ssh "${REMOTE_HOST:-ocl}" "cd ~/my-ai-agent && git pull --rebase && sudo bash scripts/render-openclaw-config.sh && docker compose up -d"
         ;;
 
     approve-pair)

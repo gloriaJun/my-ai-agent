@@ -176,19 +176,65 @@ data/openclaw/agents/main/sessions/
 └── <uuid>.jsonl           # 채널별 대화 히스토리
 ```
 
+### SKILL.md 로드 시점 — 중요
+
+모델은 **세션 시작 시 첫 번째 요청에서 SKILL.md를 `read` 도구로 한 번만 읽는다.**
+이후 요청에서는 세션 히스토리(`.jsonl`)에 캐시된 내용을 그대로 사용한다.
+
+**따라서 SKILL.md를 수정·배포해도 기존 세션에는 반영되지 않는다.**
+수정된 지침이 적용되려면 반드시 세션 리셋이 필요하다.
+
 ### 세션 초기화 방법
 
-대화 히스토리가 누적되어 에이전트 행동이 고착된 경우 세션 리셋:
+#### 방법 1: Discord에서 `!reset` 명령 (권장)
+
+systemPrompt에 아래 지침을 포함하면 사용자가 Discord에서 직접 세션을 리셋할 수 있다:
+
+```
+When the user sends `!reset` (or '세션 초기화', 'reset session', '초기화해줘'),
+use the exec tool to run `rm -f /home/node/.openclaw/agents/main/sessions/*.jsonl 2>/dev/null && echo ok`
+and reply: '세션이 초기화됩니다. 다음 메시지부터 새로운 대화가 시작됩니다.'
+```
+
+동작 원리:
+1. 모델이 exec 도구로 현재 세션 파일을 포함한 모든 `.jsonl` 파일 삭제
+2. 다음 메시지 수신 시 새 세션 파일 생성 → 최신 SKILL.md 재로드
+3. systemPrompt는 매 API 호출에 포함되므로 **구 세션에서도 즉시 유효**
+
+> `!reset` 지침은 seessionPrompt에 있고, 세션 파일이 아니라 `openclaw.json` 채널 설정에 있으므로
+> 구버전 SKILL.md를 캐시한 세션에서도 명령이 동작한다.
+
+#### 방법 2: `ctl.sh reset-session` (서버 관리용)
 
 ```bash
-# 세션 파일 백업 후 제거 (openclaw가 다음 메시지에 새 파일 생성)
-sudo mv data/openclaw/agents/main/sessions/<uuid>.jsonl \
-       data/openclaw/agents/main/sessions/<uuid>.jsonl.reset.$(date +%Y-%m-%d)
+sh ./ctl.sh reset-session
+```
+
+원격 서버의 모든 세션 파일을 삭제한다.
+
+#### 방법 3: 수동 리셋
+
+```bash
+# 특정 세션 파일 백업 후 제거
+ssh ocl "cd ~/my-ai-agent && sudo mv data/openclaw/agents/main/sessions/<uuid>.jsonl \
+       data/openclaw/agents/main/sessions/<uuid>.jsonl.reset.$(date +%Y-%m-%d)"
 docker restart openclaw
 ```
 
 > 컨테이너 재시작만으로는 세션 히스토리가 유지된다.
-> 에이전트 행동이 이전 대화 패턴으로 고착되었을 때는 세션 파일 리셋이 필요하다.
+> 세션 파일 삭제 후 openclaw는 다음 메시지에 새 파일을 자동 생성한다.
+
+### openclaw.json 권한 문제
+
+`data/openclaw/` 디렉토리는 `opc:opc (700)` 소유이므로 `ubuntu` 유저가 직접 쓸 수 없다.
+`render-openclaw-config.sh` 실행 시 `sudo`가 필요하다.
+
+```bash
+# 배포 시
+sudo bash scripts/render-openclaw-config.sh
+
+# ctl.sh deploy 명령에 이미 포함됨
+```
 
 ---
 
@@ -210,7 +256,9 @@ docker restart openclaw
 |------|------|------|
 | 스킬이 resolve 안 됨 (`resolvedSkills: []`) | SKILL.md frontmatter 없음 또는 flat 파일 경로 | frontmatter 추가, 서브디렉토리 구조로 변경 |
 | 에이전트가 webhook 대신 "어떤 시스템인가요?" 응답 | 스킬 미로드 또는 외부 액션 자제 기본 지침 | systemPrompt에 절대 경로 + pre-authorized 명시 |
-| 에이전트가 이전 페르소나로 고착 | 세션 히스토리 누적 | 세션 파일 리셋 |
+| 에이전트가 이전 페르소나로 고착 | 세션 히스토리 누적 | 세션 파일 리셋 (`!reset` 또는 `ctl.sh reset-session`) |
+| SKILL.md 수정 후에도 지침이 반영 안 됨 | 세션 시작 시 구버전 SKILL.md가 캐시됨 | 세션 리셋 필요 — SKILL.md는 세션당 1회만 로드 |
+| `render-openclaw-config.sh` Permission denied | `data/openclaw/` 가 `opc:opc (700)` 소유 | `sudo bash scripts/render-openclaw-config.sh` 로 실행 |
 | 이중 응답 | `docker run --rm` 테스트 컨테이너가 정리되지 않음 | `docker ps`로 확인 후 중복 컨테이너 제거 |
 | 컨테이너 재시작 후 "Missing config" | `data/openclaw/` 권한이 ubuntu(1001) 소유로 변경됨 | `sudo chown -R 1000:1000 data/openclaw/` |
 | prompts/ git pull 권한 오류 | 디렉토리가 root 또는 opc 소유 | `sudo chown -R ubuntu:ubuntu prompts/` |
