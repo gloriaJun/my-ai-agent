@@ -59,6 +59,7 @@ services:
   openclaw:
     image: ghcr.io/openclaw/openclaw:latest
     container_name: openclaw
+    user: "1000:1000"
     # ports:
     #   - "18789:18789"
     extra_hosts:

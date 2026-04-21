@@ -60,3 +60,39 @@ drwxrwsr-x  openclaw/   (uid=1000, gid=1000, setgid)
 
 이후 `git pull`, `setup.sh`, `docker-compose restart` 등을 ubuntu로 실행해도
 컨테이너(uid=1000)가 항상 해당 파일에 접근 가능.
+
+---
+
+## 추가 사례: openclaw 컨테이너 EACCES 오류 (2026-04-21)
+
+### 증상
+
+```
+EACCES: permission denied, mkdir '/home/node/.openclaw/agents/main/sessions'
+EACCES: permission denied, mkdir '/home/node/.openclaw/workspace'
+```
+
+### 원인
+
+`docker-compose.yml`의 openclaw 서비스에 `user` 지시어가 없어 컨테이너 기본 유저로 실행됨.
+`./data/openclaw`가 UID 1000이 아닌 유저 소유일 경우 서브디렉토리 생성 실패.
+
+### 해결
+
+**1. docker-compose.yml에 `user` 지시어 추가** (n8n과 동일하게 적용):
+
+```yaml
+openclaw:
+  image: ghcr.io/openclaw/openclaw:latest
+  user: "1000:1000"   # 추가
+  ...
+```
+
+**2. 서버에서 data/openclaw 소유권 일회성 정리**:
+
+```bash
+sudo chown -R 1000:1000 ~/my-ai-agent/data/openclaw
+docker compose up -d openclaw
+```
+
+> `data/` 전체에 이미 setgid(2775)가 적용되어 있다면 소유권 정리 후 재발하지 않음.

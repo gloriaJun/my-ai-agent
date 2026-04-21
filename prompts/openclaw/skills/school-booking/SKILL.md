@@ -87,7 +87,7 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
 ```
 
-Only confirm the booking after receiving a success response. Include in the confirmation message: full date with year (e.g. "2026년 4월 25일"), time range, duration, type (레슨실/연습실), room number (`room_number`), and reservation ID. Example: "2026년 4월 27일 오후 2시 30분부터 2시간 동안 레슨실 3호실 예약이 완료되었습니다. (예약 ID: 8)"
+Only confirm the booking if the response body contains a non-null `reservation_id`. If the response is empty, `reservation_id` is null or absent, or `status` is not `"ok"`, treat it as a failure and inform the user the booking did not go through (include the `message` field if present). Include in the confirmation message: full date with year (e.g. "2026년 4월 25일"), time range, duration, type (레슨실/연습실), room number (`room_number`), and reservation ID. Example: "2026년 4월 27일 오후 2시 30분부터 2시간 동안 레슨실 3호실 예약이 완료되었습니다. (예약 ID: 8)"
 
 ---
 
