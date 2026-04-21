@@ -1,5 +1,6 @@
 # --- [ Security & Environment ] ---
 .env
+mcp.env
 data/
 
 # --- [ OS Specific ] ---
