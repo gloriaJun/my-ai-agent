@@ -81,20 +81,21 @@ prompts/openclaw/
     └── camping-booking.md      ← 미구현 (확장 예정)
 ```
 
-**docker-compose.yml 마운트 설정:**
-
-```yaml
-volumes:
-  - ./data/openclaw:/home/node/.openclaw
-  - ./.env:/home/node/.openclaw/.env:ro
-  - ./prompts/openclaw/skills:/home/node/.openclaw/workspace/skills:ro
-```
-
-`:ro` (read-only) 마운트로 컨테이너 내부 변조를 방지한다.
-
-**skill 파일 구조 (`school-booking.md`):**
+**skill 파일 구조 (`school-booking/SKILL.md`):**
 
 ```markdown
+---
+name: school-booking
+description: "Handles school practice room and lesson room reservations"
+metadata:
+  {
+    "openclaw": {
+      "emoji": "🏫",
+      "requires": { "bins": ["curl"] }
+    }
+  }
+---
+
 # School Booking Skill
 
 Handles school practice room and lesson room reservations.
@@ -128,7 +129,7 @@ Respond in the same language the user used.
 | 변경 대상 | 작업 |
 |---|---|
 | `openclaw.template.json` | `skills` 목록에 새 스킬명 추가, `systemPrompt` scope 업데이트 |
-| `prompts/openclaw/skills/` | `{new}-booking.md` 생성 |
+| `prompts/openclaw/skills/` | `{new}-booking/SKILL.md` 생성 (frontmatter 필수) |
 | n8n | `mode={new}` 케이스 워크플로우 추가 |
 
 skill 파일 추가 후 `docker compose up -d --force-recreate openclaw` 로 재시작하면 반영된다.
@@ -142,4 +143,4 @@ skill 파일 추가 후 `docker compose up -d --force-recreate openclaw` 로 재
 | `config/openclaw/openclaw.template.json` | 채널 설정, systemPrompt, skills 목록 |
 | `prompts/openclaw/skills/` | 예약 타입별 skill 파일 (소스 관리) |
 | `docker-compose.yml` | prompts → workspace/skills 볼륨 마운트 정의 |
-| `docs/openclaw-n8n-integration.md` | 이전 Forwarder 패턴 설계 (대체됨) |
+| `docs/how-to/openclaw-channel-prompt-setup.md` | 볼륨 마운트, 채널 설정, 세션 관리 상세 |

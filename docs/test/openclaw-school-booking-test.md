@@ -133,35 +133,4 @@ n8n 대시보드 → **Executions** 탭에서 확인.
 
 ## 6. 세션/설정 관련 트러블슈팅
 
-| 증상 | 원인 | 조치 |
-|------|------|------|
-| 조회/취소 요청에 "예약 채널 전용" 응답 | 구버전 systemPrompt 또는 세션 캐시 | 서버 `openclaw.json` 업데이트 + 세션 리셋 |
-| 호실을 계속 물어봄 | 세션 히스토리 누적 | 세션 `.jsonl` 리셋 |
-| `action` query param 없이 webhook 호출 | 세션에 구버전 curl 패턴 캐시 | 세션 리셋 + `docker restart openclaw` |
-| n8n에 요청 자체가 안 들어옴 | 스킬 미로드(`resolvedSkills: []`) | SKILL.md frontmatter 확인 |
-
-### 세션 리셋 방법
-
-```bash
-cd ~/my-ai-agent
-DATE=$(date +%Y-%m-%dT%H-%M-%S)
-for f in $(sudo ls data/openclaw/agents/main/sessions/*.jsonl | grep -v 'reset\|deleted\|checkpoint\|probe'); do
-  sudo mv "$f" "${f%.jsonl}.jsonl.reset.$DATE"
-done
-docker restart openclaw
-```
-
-### resolvedSkills 확인
-
-```bash
-sudo cat ~/my-ai-agent/data/openclaw/agents/main/sessions/sessions.json \
-  | python3 -c "
-import json, sys
-d = json.load(sys.stdin)
-for k, v in d.items():
-    rs = v.get('skillsSnapshot', {}).get('resolvedSkills', [])
-    print(k[:8], '->', [s['name'] for s in rs])
-"
-```
-
-`school-booking` 이 목록에 있어야 스킬이 정상 로드된 것.
+세션 캐시, 스킬 미로드, 권한 문제 등은 [`openclaw-channel-prompt-setup.md`](../how-to/openclaw-channel-prompt-setup.md) 트러블슈팅 섹션을 참고한다.

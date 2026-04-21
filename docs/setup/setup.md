@@ -1,115 +1,132 @@
-# 🚀 AI Agent Infrastructure Setup Guide (M4 Mac)
+# AI Agent Infrastructure Setup Guide
 
-이 문서는 Ollama, n8n, OpenClaw를 도커(Docker) 기반으로 통합하여 나만의 AI 에이전트 인프라를 구축하는 과정을 기록합니다.
+이 문서는 n8n, OpenClaw를 도커(Docker) 기반으로 통합하여 AI 에이전트 인프라를 구축하는 과정을 기록합니다.
 
 ## Overview
 
-- 목적: 로컬 LLM(M4 최적화) 기반의 자동화 에이전트 환경 구축
+- 목적: 클라우드 LLM 기반의 자동화 에이전트 환경 구축
 - 핵심 스택:
-  - Ollama: 로컬 AI 모델 실행 엔진 (gemma4:e4b 사용)
   - n8n: 복잡한 워크플로우 및 외부 서비스 연동 자동화
   - OpenClaw: 디스코드 연동 및 에이전트 게이트웨이
+  - Gemini API: LLM 추론 (Google Gemini 2.5 Flash)
   - Docker Compose: 모든 서비스의 컨테이너화 및 관리
 
 ## Project Structure
 
 ```
 my-ai-agent/
+├── config/             # 서비스별 설정 템플릿 (Git 관리)
+│   └── openclaw/
+│       └── openclaw.template.json
 ├── data/               # 서비스별 영속 데이터 (Git 제외)
-│   ├── ollama/         # AI 모델 파일 및 설정
 │   ├── n8n/            # 자동화 워크플로우 및 사용자 데이터
 │   └── openclaw/       # 에이전트 설정 및 세션 로그
+├── prompts/            # 에이전트 프롬프트 파일 (Git 관리)
+│   └── openclaw/
+│       ├── SOUL.md
+│       └── skills/
+├── scripts/            # 유틸리티 스크립트
 ├── docker-compose.yml  # 인프라 정의 파일
-├── setup.sh      # 초기화 및 실행 스크립트
-├── .env                # 민감 정보 (토큰, API 키)
-└── .gitignore          # 깃 제외 목록
+└── .env                # 민감 정보 (토큰, API 키)
 ```
+
+> 루트의 쉘 스크립트 목록과 사용법은 각 스크립트 파일 상단 주석을 참고합니다.
 
 ## Configuration
 
-### 📂 docker-compose.yml
+### `.env`
 
-서비스 간의 네트워크와 볼륨 연결을 정의합니다. 특히 environment 설정 시 매핑 방식(Key: Value)을 사용하여 호환성을 확보했습니다.
-
-### 📂 .env
-
-실제 토큰 값은 깃에 노출되지 않도록 별도로 관리합니다.
+실제 토큰 값은 Git에 노출되지 않도록 별도로 관리합니다. `.env.example`을 복사해 작성합니다.
 
 ```bash
-# .env
-OPENCLAW_GATEWAY_TOKEN=5d307xxxx
+# n8n
+N8N_HOST=0.0.0.0
+N8N_PATH=/
+N8N_ENCRYPTION_KEY=<random_key>
+WEBHOOK_URL=https://<domain>/
+N8N_BOOKING_WEBHOOK_URL=https://<domain>/webhook/my-ai-agent?type=booking
 
-DISCORD_SERVER_ID=14xxx
-DISCORD_BOOKING_CHANNEL_ID=1491xxx
-DISCORD_BOOKING_BOT_TOKEN=MTQ5MTcxxxxx
+# OpenClaw
+OPENCLAW_BASE_PATH=/openclaw/
+OPENCLAW_GATEWAY_TOKEN=<token>
+
+# Discord
+DISCORD_SERVER_ID=<server_id>
+DISCORD_BOOKING_CHANNEL_ID=<channel_id>
+DISCORD_BOOKING_BOT_TOKEN=<bot_token>
+
+# LLM
+GEMINI_API_KEY=<api_key>
 ```
 
-### 📂 openclaw.json
+### `openclaw.template.json`
 
-보안과 관련된 부분은 환경 변수를 참조하도록 설정합니다.
+보안 관련 항목은 환경 변수를 참조하도록 설정합니다.
+`.env` 값이 렌더링 스크립트를 통해 `data/openclaw/openclaw.json`으로 생성됩니다.
 
 ```json
-  "gateway": {
-    "mode": "local",
-    "auth": {
-      "mode": "token",
-      "token": "${OPENCLAW_GATEWAY_TOKEN}"
-    },
+"gateway": {
+  "mode": "local",
+  "auth": {
+    "mode": "token",
+    "token": "${OPENCLAW_GATEWAY_TOKEN}"
+  }
+}
 ```
 
 ## Setup Flow
 
-아래 도표는 시스템이 하드웨어 준비부터 최종 모델 가동까지 어떤 단계를 거치는지 보여줍니다.
-
 ```mermaid
 graph TD
-    A[Start: 인프라 구축 시작] --> B[Docker Network & Data 폴더 생성]
-    B --> C[Ollama 컨테이너 선기동]
-    C --> D{Ollama API 응답 확인?}
-    D -- No --> E[대기 및 재시도]
-    E --> D
-    D -- Yes --> F[OpenClaw 온보딩 실행]
-    F --> G[설정 완료: openclaw.json 생성]
-    G --> H[전체 서비스 기동: docker-compose up]
-    H --> I[AI 모델 다운로드: gemma4:e4b]
-    I --> J[완료: 대시보드 및 디스코드 활성화]
+    A[Start] --> B[.env 파일 작성]
+    B --> C[초기화 스크립트 실행]
+    C --> D[data/ 폴더 및 Docker 네트워크 생성]
+    D --> E[openclaw.json 렌더링]
+    E --> F[docker compose up -d]
+    F --> G[완료: n8n 대시보드 및 Discord 봇 활성화]
 ```
 
-🔍 과정 상세 설명
-
-1. 환경 준비: 도커 간 통신을 위한 내부 네트워크(ai-agent-network)를 만들고, 데이터를 영구 저장할 data/ 하위 폴더들을 생성합니다.
-2. Ollama 선기동: OpenClaw가 설정 과정에서 모델 공급자(Ollama)의 상태를 확인하므로, Ollama를 먼저 띄워 API 응답이 가능한 상태로 만듭니다.
-3. OpenClaw 온보딩: 대화형 CLI를 통해 디스코드 봇 토큰, 허용 채널 ID, 모델명(ollama/gemma4:e4b)을 입력하여 핵심 설정 파일을 생성합니다.
-4. 전체 스택 런칭: 인프라의 모든 구성 요소(n8n, OpenClaw, Ollama)를 백그라운드 모드로 동기화하여 기동합니다.
-5. 모델 배포: M4 칩에 최적화된 양자화 모델을 Ollama 엔진에 적재하여 실제 추론이 가능한 상태로 마무리합니다.
+1. **환경 파일 준비**: `.env.example`을 `.env`로 복사하고 각 항목 입력
+2. **초기화 실행**: 초기화 스크립트를 최초 1회 실행 — `data/` 폴더 생성, `openclaw.json` 렌더링, 컨테이너 기동
+3. **이후 관리**: 관리 스크립트 사용 (초기화 스크립트는 최초 1회 전용)
 
 ## OpenClaw 보안 및 기기 승인 (Pairing)
 
 OpenClaw 접속 시 보안을 위해 브라우저 기기 승인 절차가 필요합니다.
 
-기기 목록 확인:
-
 ```bash
 docker exec -it openclaw node dist/index.js devices list
-```
-
-기기 승인:
-
-```bash
 docker exec -it openclaw node dist/index.js devices approve <device_id>
 ```
 
-## 유지보수 및 운영 (Maintenance)
+> 관리 스크립트에 원격 승인 명령이 포함되어 있습니다. 스크립트 주석을 참고하세요.
 
-시스템의 상태를 확인하거나 변경할 때 자주 사용하는 명령어 모음입니다.
+---
 
-| 작업 분류              |                            실행 명령어                             | 설명                                                    |
-| :--------------------- | :----------------------------------------------------------------: | :------------------------------------------------------ |
-| **서비스 시작**        |                       `docker-compose up -d`                       | 모든 서비스를 백그라운드에서 실행                       |
-| **서비스 중지**        |                       `docker-compose down`                        | 모든 서비스를 중지하고 컨테이너 제거 (데이터는 보존)    |
-| **상태 확인**          |                        `docker-compose ps`                         | 현재 실행 중인 컨테이너 목록 및 포트 확인               |
-| **로그 모니터링**      |                `docker-compose logs -f [서비스명]`                 | 특정 서비스(openclaw, ollama 등)의 실시간 로그 확인     |
-| **서비스 재시작**      |                `docker-compose restart [서비스명]`                 | 설정 변경 후 특정 서비스만 다시 불러오기                |
-| **모델 추가/업데이트** |           `docker exec -it ollama ollama pull [모델명]`            | Ollama에 새로운 AI 모델을 추가하거나 업데이트           |
-| **기기 승인(Pairing)** | `docker exec -it openclaw node dist/index.js devices approve [ID]` | 새로운 브라우저에서 접속 시 기기 권한 승인              |
-| **리소스 정리**        |                      `docker system prune -f`                      | 사용하지 않는 오래된 이미지나 네트워크 삭제 (용량 확보) |
+## 부록: 로컬 LLM 설치 (선택, native)
+
+> Ollama Docker 컨테이너는 현재 비활성화 상태입니다.
+> 로컬 LLM이 필요한 경우 호스트 머신에 native로 설치하고, n8n/openclaw에서 `http://host.docker.internal:11434`로 접근합니다.
+
+### macOS
+
+```bash
+brew install ollama
+ollama serve
+ollama pull llama3.2:3b
+```
+
+### Linux (서버)
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2:3b
+```
+
+### 환경 변수
+
+`.env`의 `OLLAMA_BASE_URL`이 n8n에 전달됩니다:
+
+```bash
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+```

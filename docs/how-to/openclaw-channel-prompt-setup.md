@@ -1,13 +1,10 @@
 # OpenClaw 채널 프롬프트 설정 가이드
 
-이 문서는 openclaw Discord 채널에 채널별 지침(systemPrompt)과 스킬(skill)을 연결하는
-설정 방법과, 시행착오를 통해 확인한 동작 원리를 기록한다.
+openclaw Discord 채널에 채널별 지침(systemPrompt)과 스킬(skill)을 연결하는 설정 방법과, 시행착오를 통해 확인한 동작 원리를 기록한다.
 
 ---
 
-## OpenClaw 동작 원리 요약
-
-### 에이전트 컨텍스트 조립 순서
+## 1. 동작 원리
 
 openclaw는 매 세션 시작 시 아래 파일을 순서대로 읽어 시스템 프롬프트를 조립한다.
 
@@ -26,40 +23,9 @@ openclaw는 매 세션 시작 시 아래 파일을 순서대로 읽어 시스템
 
 ---
 
-## 파일 구조
+## 2. 채널 프롬프트 설정
 
-```
-prompts/
-└── openclaw/
-    ├── SOUL.md                          # 전역 에이전트 정체성 (git 관리)
-    └── skills/
-        └── school-booking/
-            └── SKILL.md                 # 학교 예약 스킬 정의
-```
-
-`data/` 는 gitignore 대상이므로, 버전 관리가 필요한 프롬프트/스킬은 `prompts/` 에 두고
-docker volume으로 마운트한다.
-
----
-
-## docker-compose.yml 볼륨 마운트
-
-```yaml
-volumes:
-  - ./data/openclaw:/home/node/.openclaw
-  - ./.env:/home/node/.openclaw/.env:ro
-  - ./prompts/openclaw/SOUL.md:/home/node/.openclaw/workspace/SOUL.md:ro
-  - ./prompts/openclaw/skills:/home/node/.openclaw/workspace/skills:ro
-```
-
-- SOUL.md를 `:ro`로 마운트하면 에이전트가 스스로 수정할 수 없다.
-  openclaw 설계 의도(에이전트 자율 수정)를 포기하는 대신 운영 통제권을 확보한다.
-- `prompts/` 디렉토리는 서버에서 **ubuntu 소유**이지만 컨테이너는 **uid=1000(opc)** 으로 실행된다.
-  읽기 권한(o+r)이 있으면 문제없다. (`drwxrwxr-x` 이상이면 OK)
-
----
-
-## openclaw.json 채널 설정
+### openclaw.json 채널 설정 구조
 
 ```json
 "channels": {
@@ -80,26 +46,42 @@ volumes:
 }
 ```
 
-### `skills` 필드 동작 방식
+`openclaw.json`은 `config/openclaw/openclaw.template.json`에서 렌더링 스크립트를 통해 생성된다.
+변경 후 openclaw 컨테이너를 재시작해야 반영된다.
 
-- `skills: ["school-booking"]` 은 **필터** 역할이다.
-  에이전트가 볼 수 있는 스킬 목록을 이 이름들로 제한한다.
-- 스킬이 실제로 resolve 되려면 `workspace/skills/<name>/SKILL.md` 파일이 존재하고
-  **YAML frontmatter**(`name`, `description`)가 있어야 한다. 없으면 `resolvedSkills: []`가 된다.
-- 세션 진단: `data/openclaw/agents/main/sessions/sessions.json` 의
-  `skillsSnapshot.resolvedSkills` 로 확인 가능.
-
-### `systemPrompt` 작성 원칙
+### systemPrompt 작성 원칙
 
 - **SOUL.md와 중복 금지**: SOUL.md에 있는 내용은 systemPrompt에 반복하지 않는다.
-- **채널 scope 제한**: "이 채널은 X 전용"과 같은 채널 특화 규칙만 정의한다.
-- **스킬 파일 명시**: 에이전트가 자동으로 스킬을 발견하지 못할 경우,
-  절대 경로로 읽도록 명시적으로 지시한다.
-- **외부 액션 사전 승인**: AGENTS.md의 기본 지침이 "외부 액션은 먼저 확인"이므로,
-  webhook 호출처럼 명시적으로 승인이 필요한 동작은 systemPrompt에 pre-authorized 명시.
+- **스킬 파일 명시**: 에이전트가 자동으로 스킬을 발견하지 못할 경우, 절대 경로로 읽도록 명시적으로 지시한다.
+- **외부 액션 사전 승인**: AGENTS.md의 기본 지침이 "외부 액션은 먼저 확인"이므로, webhook 호출처럼 명시적 실행이 필요한 동작은 pre-authorized 명시.
 - **언어**: 지침은 영어로 작성하고, 사용자에게는 요청 언어로 응답하도록 명시.
 
-현재 예약 채널 systemPrompt 예시:
+### `skills` 필드 동작 방식
+
+- `skills: ["school-booking"]`은 **필터** 역할이다. 에이전트가 볼 수 있는 스킬 목록을 이 이름들로 제한한다.
+- 스킬이 실제로 resolve 되려면 `workspace/skills/<name>/SKILL.md` 파일이 존재하고 **YAML frontmatter**(`name`, `description`)가 있어야 한다. 없으면 `resolvedSkills: []`가 된다.
+- 세션 진단: `data/openclaw/agents/main/sessions/sessions.json`의 `skillsSnapshot.resolvedSkills`로 확인 가능.
+
+---
+
+## 3. 채널 스코프 제한
+
+특정 기능 외의 요청에는 응대하지 않도록 채널을 제한하는 방법이다.
+
+openclaw의 기본 지침(AGENTS.md)은 에이전트가 범용적으로 동작하도록 설계되어 있다.
+채널별로 응대 범위를 좁히려면 **systemPrompt에서 명시적으로 off-topic 요청을 거부**해야 한다.
+
+### 패턴
+
+```
+This channel is for [purpose] only.
+For any other request: reply that this channel is for [purpose] only and stop.
+```
+
+간결할수록 좋다. 에이전트가 판단 여지를 갖지 않도록 "and stop"으로 명시한다.
+
+### 현재 예약 채널 systemPrompt 예시
+
 ```
 This channel is for school room reservations only.
 For booking requests: read /home/node/.openclaw/workspace/skills/school-booking/SKILL.md
@@ -110,9 +92,24 @@ For any other request: reply that this channel is for reservations only and stop
 Always respond in the same language the user used.
 ```
 
+### 주의
+
+SOUL.md에 전역 성격·규칙이 강하게 정의되어 있으면 systemPrompt의 scope 제한을 덮어쓸 수 있다.
+채널 제한이 동작하지 않는다면 SOUL.md와 충돌 여부를 먼저 확인한다.
+
 ---
 
-## SKILL.md 작성 규칙
+## 4. SKILL.md 연결
+
+### 파일 경로 규칙
+
+```
+workspace/skills/<skill-name>/SKILL.md    ✅  (서브디렉토리 + SKILL.md)
+workspace/skills/<skill-name>.md          ❌  (flat 파일 — 인식 안 됨)
+```
+
+`prompts/openclaw/skills/`를 docker volume으로 컨테이너의 `workspace/skills/`에 마운트한다.
+`:ro` 마운트를 사용하면 에이전트가 스스로 스킬 파일을 수정할 수 없다.
 
 ### 필수 frontmatter
 
@@ -132,22 +129,70 @@ metadata:
 
 frontmatter 없이 마크다운 본문만 있으면 openclaw가 스킬로 인식하지 못한다.
 
-### 스킬 파일 경로
-
-```
-workspace/skills/<skill-name>/SKILL.md    ✅  (서브디렉토리 + SKILL.md)
-workspace/skills/<skill-name>.md          ❌  (flat 파일 — 인식 안 됨)
-```
-
 ### exec 사용
 
 에이전트가 curl 등 외부 명령을 실행하려면 `exec` 툴을 사용한다.
 SKILL.md에 curl 예시만 적어두면 에이전트가 실행 여부를 스스로 판단한다.
-확실히 실행하게 하려면 systemPrompt에 "use the exec tool" 을 명시한다.
+확실히 실행하게 하려면 systemPrompt에 "use the exec tool"을 명시한다.
 
 ---
 
-## 모델 설정
+## 5. 지침 반영 타이밍
+
+### systemPrompt vs SKILL.md 로드 차이
+
+| 구분 | 로드 시점 | 변경 반영 |
+|------|-----------|-----------|
+| `systemPrompt` | 매 API 호출마다 포함 | 즉시 반영 |
+| `SKILL.md` | 세션 시작 시 첫 요청에서 1회만 읽음 | **세션 리셋 후 반영** |
+
+SKILL.md를 수정·배포해도 기존 세션에는 반영되지 않는다.
+세션 히스토리(`.jsonl`)에 이전 내용이 캐시되어 있기 때문이다.
+
+> 이 차이 때문에 `!reset` 지침은 SKILL.md가 아닌 systemPrompt에 두어야 한다.
+> 구버전 SKILL.md를 캐시한 세션에서도 `!reset`이 동작하는 이유가 바로 이것이다.
+
+### 세션 파일 위치
+
+```
+data/openclaw/agents/main/sessions/
+├── sessions.json          # 채널-세션 매핑 인덱스
+└── <uuid>.jsonl           # 채널별 대화 히스토리
+```
+
+### 세션 초기화 방법
+
+#### 방법 1: Discord에서 `!reset` 명령 (권장)
+
+systemPrompt에 아래 지침을 포함하면 사용자가 Discord에서 직접 세션을 리셋할 수 있다:
+
+```
+When the user sends `!reset` (or '세션 초기화', 'reset session', '초기화해줘'),
+use the exec tool to run `rm -f /home/node/.openclaw/agents/main/sessions/*.jsonl 2>/dev/null && echo ok`
+and reply: '세션이 초기화됩니다. 다음 메시지부터 새로운 대화가 시작됩니다.'
+```
+
+동작 원리:
+1. 모델이 exec 도구로 모든 `.jsonl` 파일 삭제
+2. 다음 메시지 수신 시 새 세션 파일 생성 → 최신 SKILL.md 재로드
+
+#### 방법 2: 수동 (특정 세션 파일을 보존해야 하는 경우)
+
+```bash
+cd ~/my-ai-agent
+DATE=$(date +%Y-%m-%dT%H-%M-%S)
+for f in $(sudo ls data/openclaw/agents/main/sessions/*.jsonl | grep -v 'reset\|deleted\|checkpoint\|probe'); do
+  sudo mv "$f" "${f%.jsonl}.jsonl.reset.$DATE"
+done
+docker restart openclaw
+```
+
+> 컨테이너 재시작만으로는 세션 히스토리가 유지된다.
+> 세션 파일 삭제 후 openclaw는 다음 메시지에서 새 파일을 자동 생성한다.
+
+---
+
+## 6. 모델 설정
 
 llama3.2:3b (로컬 소형 모델)는 스킬 지침을 따르기에 부족했다.
 gemini-2.5-flash로 교체 후 정상 동작.
@@ -166,99 +211,32 @@ API 키 환경변수명: `GEMINI_API_KEY` (`.env` 파일에 설정)
 
 ---
 
-## 세션 관리
-
-### 세션 파일 위치
-
-```
-data/openclaw/agents/main/sessions/
-├── sessions.json          # 채널-세션 매핑 인덱스
-└── <uuid>.jsonl           # 채널별 대화 히스토리
-```
-
-### SKILL.md 로드 시점 — 중요
-
-모델은 **세션 시작 시 첫 번째 요청에서 SKILL.md를 `read` 도구로 한 번만 읽는다.**
-이후 요청에서는 세션 히스토리(`.jsonl`)에 캐시된 내용을 그대로 사용한다.
-
-**따라서 SKILL.md를 수정·배포해도 기존 세션에는 반영되지 않는다.**
-수정된 지침이 적용되려면 반드시 세션 리셋이 필요하다.
-
-### 세션 초기화 방법
-
-#### 방법 1: Discord에서 `!reset` 명령 (권장)
-
-systemPrompt에 아래 지침을 포함하면 사용자가 Discord에서 직접 세션을 리셋할 수 있다:
-
-```
-When the user sends `!reset` (or '세션 초기화', 'reset session', '초기화해줘'),
-use the exec tool to run `rm -f /home/node/.openclaw/agents/main/sessions/*.jsonl 2>/dev/null && echo ok`
-and reply: '세션이 초기화됩니다. 다음 메시지부터 새로운 대화가 시작됩니다.'
-```
-
-동작 원리:
-1. 모델이 exec 도구로 현재 세션 파일을 포함한 모든 `.jsonl` 파일 삭제
-2. 다음 메시지 수신 시 새 세션 파일 생성 → 최신 SKILL.md 재로드
-3. systemPrompt는 매 API 호출에 포함되므로 **구 세션에서도 즉시 유효**
-
-> `!reset` 지침은 seessionPrompt에 있고, 세션 파일이 아니라 `openclaw.json` 채널 설정에 있으므로
-> 구버전 SKILL.md를 캐시한 세션에서도 명령이 동작한다.
-
-#### 방법 2: `ctl.sh reset-session` (서버 관리용)
-
-```bash
-sh ./ctl.sh reset-session
-```
-
-원격 서버의 모든 세션 파일을 삭제한다.
-
-#### 방법 3: 수동 리셋
-
-```bash
-# 특정 세션 파일 백업 후 제거
-ssh ocl "cd ~/my-ai-agent && sudo mv data/openclaw/agents/main/sessions/<uuid>.jsonl \
-       data/openclaw/agents/main/sessions/<uuid>.jsonl.reset.$(date +%Y-%m-%d)"
-docker restart openclaw
-```
-
-> 컨테이너 재시작만으로는 세션 히스토리가 유지된다.
-> 세션 파일 삭제 후 openclaw는 다음 메시지에 새 파일을 자동 생성한다.
-
-### openclaw.json 권한 문제
-
-`data/openclaw/` 디렉토리는 `opc:opc (700)` 소유이므로 `ubuntu` 유저가 직접 쓸 수 없다.
-`render-openclaw-config.sh` 실행 시 `sudo`가 필요하다.
-
-```bash
-# 배포 시
-sudo bash scripts/render-openclaw-config.sh
-
-# ctl.sh deploy 명령에 이미 포함됨
-```
-
----
-
-## 확장: 새 예약 타입 추가
-
-| 단계 | 작업 |
-|------|------|
-| 1 | `prompts/openclaw/skills/<type>-booking/SKILL.md` 생성 (frontmatter 포함) |
-| 2 | `openclaw.json` 채널의 `skills` 목록에 추가 |
-| 3 | `systemPrompt` 업데이트 (새 스킬 파일 경로 추가) |
-| 4 | n8n에 `mode=<type>` 케이스 워크플로우 추가 |
-| 5 | `docker restart openclaw` |
-
----
-
-## 트러블슈팅
+## 7. 트러블슈팅
 
 | 증상 | 원인 | 해결 |
 |------|------|------|
 | 스킬이 resolve 안 됨 (`resolvedSkills: []`) | SKILL.md frontmatter 없음 또는 flat 파일 경로 | frontmatter 추가, 서브디렉토리 구조로 변경 |
 | 에이전트가 webhook 대신 "어떤 시스템인가요?" 응답 | 스킬 미로드 또는 외부 액션 자제 기본 지침 | systemPrompt에 절대 경로 + pre-authorized 명시 |
-| 에이전트가 이전 페르소나로 고착 | 세션 히스토리 누적 | 세션 파일 리셋 (`!reset` 또는 `ctl.sh reset-session`) |
+| 채널 스코프 제한이 동작 안 함 | SOUL.md 전역 지침과 충돌 | SOUL.md 내용 확인 및 systemPrompt scope 제한 표현 강화 |
+| 에이전트가 이전 페르소나로 고착 | 세션 히스토리 누적 | 세션 리셋 (방법 1~3 참고) |
 | SKILL.md 수정 후에도 지침이 반영 안 됨 | 세션 시작 시 구버전 SKILL.md가 캐시됨 | 세션 리셋 필요 — SKILL.md는 세션당 1회만 로드 |
-| `render-openclaw-config.sh` Permission denied | `data/openclaw/` 가 `opc:opc (700)` 소유 | `sudo bash scripts/render-openclaw-config.sh` 로 실행 |
+| n8n에 요청 자체가 안 들어옴 | 스킬 미로드 (`resolvedSkills: []`) | SKILL.md frontmatter 확인 |
+| `render-openclaw-config.sh` Permission denied | `data/openclaw/` 가 `opc:opc (700)` 소유 | `sudo bash scripts/render-openclaw-config.sh`로 실행 |
 | 이중 응답 | `docker run --rm` 테스트 컨테이너가 정리되지 않음 | `docker ps`로 확인 후 중복 컨테이너 제거 |
 | 컨테이너 재시작 후 "Missing config" | `data/openclaw/` 권한이 ubuntu(1001) 소유로 변경됨 | `sudo chown -R 1000:1000 data/openclaw/` |
 | prompts/ git pull 권한 오류 | 디렉토리가 root 또는 opc 소유 | `sudo chown -R ubuntu:ubuntu prompts/` |
+
+### resolvedSkills 진단
+
+```bash
+sudo cat ~/my-ai-agent/data/openclaw/agents/main/sessions/sessions.json \
+  | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for k, v in d.items():
+    rs = v.get('skillsSnapshot', {}).get('resolvedSkills', [])
+    print(k[:8], '->', [s['name'] for s in rs])
+"
+```
+
+`school-booking`이 목록에 있어야 스킬이 정상 로드된 것.
