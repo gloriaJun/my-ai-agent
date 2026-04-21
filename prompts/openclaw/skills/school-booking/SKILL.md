@@ -87,7 +87,7 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
 ```
 
-Only confirm the booking after receiving a success response. Include the full date with year (e.g. "2026년 4월 25일") in the confirmation message.
+Only confirm the booking after receiving a success response. Include in the confirmation message: full date with year (e.g. "2026년 4월 25일"), time range, duration, type (레슨실/연습실), room number (`room_number`), and reservation ID. Example: "2026년 4월 27일 오후 2시 30분부터 2시간 동안 레슨실 3호실 예약이 완료되었습니다. (예약 ID: 8)"
 
 ---
 
@@ -113,7 +113,7 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=list" \
   -d '{"date":"YYYY-MM-DD"}'
 ```
 
-Present the results as a list. For each item show: reservation ID, date (YYYY년 M월 D일), time range, type (레슨실/연습실), and status. Never output raw JSON.
+Present the results as a list. Start with the total count (e.g. "총 2건의 예약이 있습니다."). For each item show: reservation ID, date (YYYY년 M월 D일), time range, type (레슨실/연습실), room number (`room_number`), and status. Never output raw JSON. Example item: "- 예약 ID: 6, 날짜: 2026년 4월 22일, 시간: 16:30 - 18:00, 종류: 레슨실 3호실, 상태: 확정"
 
 ---
 
