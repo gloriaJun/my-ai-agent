@@ -24,6 +24,8 @@ show_help() {
     echo -e "  ${GREEN}restart${NC} : 컨테이너 재시작"
     echo -e "  ${GREEN}pair-list${NC} : OpenClaw 페어링 상태 조회(원격)"
     echo -e "  ${GREEN}approve-pair${NC} : OpenClaw 최신 pending 페어링 승인(원격)"
+    echo -e "  ${GREEN}nginx-backup${NC} : nginx 설정을 서버에서 가져와 config/nginx/에 저장"
+    echo -e "  ${GREEN}nginx-restore${NC} : config/nginx/의 설정을 서버에 적용하고 reload"
     echo -e "  ${GREEN}help${NC}    : 도움말 보기"
 }
 
@@ -99,6 +101,14 @@ case "$1" in
         REMOTE_HOST="${REMOTE_HOST:-ocl}"
         echo -e "${YELLOW}>>> 원격 OpenClaw 페어링 상태 조회: ${REMOTE_HOST}${NC}"
         ssh "$REMOTE_HOST" "docker exec openclaw node dist/index.js devices list"
+        ;;
+
+    nginx-backup)
+        bash scripts/nginx-backup.sh
+        ;;
+
+    nginx-restore)
+        bash scripts/nginx-restore.sh
         ;;
 
     approve-pair)
