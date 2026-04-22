@@ -19,7 +19,7 @@
 #   approve-pair   OpenClaw 최신 pending 페어링 자동 승인 (원격)
 #   nginx-backup   서버에서 nginx proxy_host 설정을 config/nginx/proxy-host.json으로 백업
 #   nginx-restore  config/nginx/proxy-host.json을 서버에 복원하고 nginx reload
-#   reset-session  원격 OpenClaw 세션 파일 초기화 (sessions/*.jsonl 삭제)
+#   reset-session  원격 OpenClaw 세션 파일 초기화 (sessions/*.jsonl + sessions.json 삭제)
 #   deploy         git push 후 원격 서버에 pull & docker compose up -d
 #   help           도움말 보기
 #
@@ -201,7 +201,7 @@ case "$1" in
     reset-session)
         REMOTE_HOST="${REMOTE_HOST:-ocl}"
         echo -e "${YELLOW}>>> 원격 OpenClaw 세션 초기화: ${REMOTE_HOST}${NC}"
-        ssh "$REMOTE_HOST" "cd ~/my-ai-agent && sudo rm -f data/openclaw/agents/main/sessions/*.jsonl && echo '세션 파일 삭제 완료'"
+        ssh "$REMOTE_HOST" "cd ~/my-ai-agent && sudo rm -f data/openclaw/agents/main/sessions/*.jsonl data/openclaw/agents/main/sessions/sessions.json && echo '세션 파일 삭제 완료'"
         ;;
 
     deploy)

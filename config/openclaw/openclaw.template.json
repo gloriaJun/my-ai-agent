@@ -44,7 +44,11 @@
     }
   },
   "session": {
-    "dmScope": "per-channel-peer"
+    "dmScope": "per-channel-peer",
+    "reset": {
+      "mode": "idle",
+      "idleMinutes": 60
+    }
   },
   "tools": {
     "profile": "coding"
