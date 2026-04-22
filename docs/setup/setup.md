@@ -53,7 +53,7 @@ OPENCLAW_GATEWAY_TOKEN=<token>
 # Discord
 DISCORD_SERVER_ID=<server_id>
 DISCORD_BOOKING_CHANNEL_ID=<channel_id>
-DISCORD_BOOKING_BOT_TOKEN=<bot_token>
+DISCORD_BOT_TOKEN=<bot_token>
 
 # LLM
 GEMINI_API_KEY=<api_key>

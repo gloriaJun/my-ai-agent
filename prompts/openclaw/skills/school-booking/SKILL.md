@@ -62,6 +62,7 @@ If `date` or `time` is missing, ask the user before proceeding.
 - Infer year from current date in context if not specified.
 - If the date appears to have already passed this year, ask the user to confirm the intended year.
 - Convert 12-hour expressions to 24h: 오후 N시 → N+12:00 (오후 12시 → 12:00), 오전 N시 → N:00.
+- Always include the day of week when expressing a date (e.g. 2026년 4월 22일 수).
 
 ### curl examples
 
@@ -87,7 +88,7 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
 ```
 
-Only confirm the booking if the response body contains a non-null `reservation_id`. If the response is empty, `reservation_id` is null or absent, or `status` is not `"ok"`, treat it as a failure and inform the user the booking did not go through (include the `message` field if present). Include in the confirmation message: full date with year (e.g. "2026년 4월 25일"), time range, duration, type (레슨실/연습실), room number (`room_number`), and reservation ID. Example: "2026년 4월 27일 오후 2시 30분부터 2시간 동안 레슨실 3호실 예약이 완료되었습니다. (예약 ID: 8)"
+Only confirm the booking if the response body contains a non-null `reservation_id`. If the response is empty, `reservation_id` is null or absent, or `status` is not `"ok"`, treat it as a failure and inform the user the booking did not go through (include the `message` field if present). Include in the confirmation message: full date with year and day of week (e.g. "2026년 4월 25일 토"), time range, duration, type (레슨실/연습실), room number (`room_number`), and reservation ID. Example: "2026년 4월 27일 월 오후 2시 30분부터 2시간 동안 레슨실 3호실 예약이 완료되었습니다. (예약 ID: 8)"
 
 ---
 
@@ -113,7 +114,7 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=list" \
   -d '{"date":"YYYY-MM-DD"}'
 ```
 
-Present the results as a list. Start with the total count (e.g. "총 2건의 예약이 있습니다."). For each item show: reservation ID, date (YYYY년 M월 D일), time range, type+room, and status. For type+room: map `facility_type` ("lesson"→레슨실, "practice"→연습실), then append room — if `room_number` is a digit string (e.g. "3") append "N호실" (e.g. "레슨실 3호실"); if `room_number` is "자동선택" append "(자동배정)". Use `status_kr` for status. Never output raw JSON. Example items: "- 예약 ID: 8, 날짜: 2026년 4월 27일, 시간: 14:30 - 16:30, 종류: 레슨실 3호실, 상태: 확정" or "- 예약 ID: 9, 날짜: 2026년 4월 28일, 시간: 16:30 - 18:00, 종류: 레슨실 (자동배정), 상태: 확정"
+Present the results as a list. Start with the total count (e.g. "총 2건의 예약이 있습니다."). For each item show: reservation ID, date (YYYY년 M월 D일 요일), time range, type+room, and status. For type+room: map `facility_type` ("lesson"→레슨실, "practice"→연습실), then append room — if `room_number` is a digit string (e.g. "3") append "N호실" (e.g. "레슨실 3호실"); if `room_number` is "자동선택" append "(자동배정)". Use `status_kr` for status. Never output raw JSON. Example items: "- 예약 ID: 8, 날짜: 2026년 4월 27일 월, 시간: 14:30 - 16:30, 종류: 레슨실 3호실, 상태: 확정" or "- 예약 ID: 9, 날짜: 2026년 4월 28일 화, 시간: 16:30 - 18:00, 종류: 레슨실 (자동배정), 상태: 확정"
 
 ---
 

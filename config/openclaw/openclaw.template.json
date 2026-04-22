@@ -68,7 +68,7 @@
   "channels": {
     "discord": {
       "enabled": true,
-      "token": "${DISCORD_BOOKING_BOT_TOKEN}",
+      "token": "${DISCORD_BOT_TOKEN}",
       "groupPolicy": "allowlist",
       "guilds": {
         "__DISCORD_SERVER_ID__": {
