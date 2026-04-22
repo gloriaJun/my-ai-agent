@@ -22,6 +22,10 @@ jobs:
 
             git pull --rebase
 
+            sudo bash scripts/render-openclaw-config.sh
+
+            sudo chown -R 1000:1000 data/
+
             docker compose up -d
 
             # 컨테이너 기동 대기
