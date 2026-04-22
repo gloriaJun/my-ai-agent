@@ -143,7 +143,7 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=list" \
   -d '{"date":"YYYY-MM-DD"}'
 ```
 
-Present the results as a list. Start with the total count (e.g. "총 2건의 예약이 있습니다."). For each item show: reservation ID, date (YYYY년 M월 D일 요일), time range, type+room, and status. For type+room: map `facility_type` ("lesson"→레슨실, "practice"→연습실), then append room — if `room_number` is a digit string (e.g. "3") append "N호실" (e.g. "레슨실 3호실"); if `room_number` is "자동선택" append "(자동배정)". Use `status_kr` for status. Never output raw JSON. Example items: "- 예약 ID: 8, 날짜: 2026년 4월 27일 월, 시간: 14:30 - 16:30, 종류: 레슨실 3호실, 상태: 확정" or "- 예약 ID: 9, 날짜: 2026년 4월 28일 화, 시간: 16:30 - 18:00, 종류: 레슨실 (자동배정), 상태: 확정"
+Present the results as a list. Start with the total count (e.g. "총 2건의 예약이 있습니다."). For each item show: reservation ID, date (YYYY년 M월 D일 요일), time range, and type+room. For type+room: map `facility_type` ("lesson"→레슨실, "practice"→연습실), then append room — if `room_number` is a digit string (e.g. "3") append "N호실" (e.g. "레슨실 3호실"); if `room_number` is "자동선택" append "(자동배정)". Never output raw JSON. Example items: "- 예약 ID: 8, 날짜: 2026년 4월 27일 월, 시간: 14:30 - 16:30, 종류: 레슨실 3호실" or "- 예약 ID: 9, 날짜: 2026년 4월 28일 화, 시간: 16:30 - 18:00, 종류: 레슨실 (자동배정)"
 
 ---
 
