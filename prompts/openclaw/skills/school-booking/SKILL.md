@@ -88,7 +88,36 @@ curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
 ```
 
-Only confirm the booking if the response body contains a non-null `reservation_id`. If the response is empty, `reservation_id` is null or absent, or `status` is not `"ok"`, treat it as a failure and inform the user the booking did not go through (include the `message` field if present). Include in the confirmation message: full date with year and day of week (e.g. "2026년 4월 25일 토"), time range, duration, type (레슨실/연습실), room number (`room_number`), and reservation ID. Example: "2026년 4월 27일 월 오후 2시 30분부터 2시간 동안 레슨실 3호실 예약이 완료되었습니다. (예약 ID: 8)"
+**Success**: `status === "ok"` AND `reservations` array is non-empty.
+
+On success, output the `message` field as a header, then list all items in `reservations` using the same format as action=list. For each item:
+- Map `facility_type`: `"lesson"` → 레슨실, `"practice"` → 연습실
+- Map `room_number`: digit string (e.g. `"3"`) → "N호실"; `"자동선택"` → "(자동배정)"
+- Format `date` (YYYY-MM-DD) as `YYYY년 M월 D일 요일`
+
+Example output (reservations only):
+```
+예약이 등록되었습니다. (총 8건)
+
+- 예약 ID: 42, 날짜: 2026년 4월 14일 월, 시간: 16:30 - 18:00, 종류: 레슨실 3호실
+- 예약 ID: 43, 날짜: 2026년 4월 21일 월, 시간: 16:30 - 18:00, 종류: 레슨실 3호실
+...
+```
+
+Example output (with skipped dates):
+```
+예약이 등록되었습니다. (총 7건, 1건 스킵)
+
+- 예약 ID: 42, 날짜: 2026년 4월 18일 토, 시간: 16:30 - 18:00, 종류: 레슨실 3호실
+...
+
+스킵된 날짜:
+- 2026년 5월 5일 화 — 공휴일 (어린이날)
+```
+
+If `skipped` is absent or empty, omit the "스킵된 날짜" section entirely. Format `skipped[].date` the same as reservation dates (`YYYY년 M월 D일 요일`), and append ` — {reason}`.
+
+**Failure**: `status` ≠ `"ok"`, or `reservations` is absent or empty → inform the user the booking did not go through. Include the `message` field if present.
 
 ---
 
@@ -124,16 +153,24 @@ Present the results as a list. Start with the total count (e.g. "총 2건의 예
 
 | Field | Key | Format  |
 |-------|-----|---------|
-| Reservation ID | id | integer |
+| Reservation ID(s) | ids | integer array |
 
 If the user does not provide an ID, call `action=list` first to retrieve reservations, then ask the user which one to cancel.
 
-### curl example
+**IMPORTANT**: 취소 요청은 항상 `ids` 배열로 단일 webhook 요청을 사용한다. 개별 curl 반복/병렬 실행 금지.
+
+### curl examples
 
 ```bash
+# 단일 취소
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=delete" \
   -H "Content-Type: application/json" \
-  -d '{"id":3}'
+  -d '{"ids":[3]}'
+
+# 복수 취소
+curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=delete" \
+  -H "Content-Type: application/json" \
+  -d '{"ids":[8,9,12]}'
 ```
 
 Only confirm cancellation after receiving a success response from the webhook.
