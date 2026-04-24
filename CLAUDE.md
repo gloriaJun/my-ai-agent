@@ -87,3 +87,11 @@ Push to `main` triggers GitHub Actions (`.github/workflows/deploy.yml`), which S
 Manual deploy: `bash ./scripts/ctl.sh deploy`
 
 Prerequisite: SSH config must have `ocl` as an alias for the remote server.
+
+## References
+
+| URL | Description |
+|-----|-------------|
+| https://docs.openclaw.ai | OpenClaw 공식 문서 홈 |
+| https://docs.openclaw.ai/gateway/configuration | Config 전체 레퍼런스 (모델, fallback, provider 등) |
+| https://docs.openclaw.ai/concepts/model-failover | Model failover 동작 원리 상세 |

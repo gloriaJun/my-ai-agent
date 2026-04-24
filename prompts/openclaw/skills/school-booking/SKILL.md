@@ -70,21 +70,25 @@ If `date` or `time` is missing, ask the user before proceeding.
 # Minimum (date + time)
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM"}'
 
 # With type
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson"}'
 
 # With room and duration
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":2,"duration":60}'
 
 # With recurring
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
 ```
 
@@ -135,11 +139,13 @@ If `skipped` is absent or empty, omit the "스킵된 날짜" section entirely. F
 # All reservations
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=list" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{}'
 
 # Filter by date
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=list" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{"date":"YYYY-MM-DD"}'
 ```
 
@@ -165,11 +171,13 @@ If the user does not provide an ID, call `action=list` first to retrieve reserva
 # 단일 취소
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=delete" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{"ids":[3]}'
 
 # 복수 취소
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=delete" \
   -H "Content-Type: application/json" \
+  --max-time 15 --retry 2 --retry-delay 3 \
   -d '{"ids":[8,9,12]}'
 ```
 
