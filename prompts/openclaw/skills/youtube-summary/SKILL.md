@@ -30,7 +30,7 @@ URL이 없거나 YouTube URL이 아니면 제공을 요청한다.
 ## Execution
 
 ```bash
-curl -s -X POST "${N8N_YOUTUBE_WEBHOOK_URL}&action=summarize" \
+curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&action=summarize" \
   -H "Content-Type: application/json" \
   --max-time 60 \
   -d '{"url":"<YouTube URL>"}'

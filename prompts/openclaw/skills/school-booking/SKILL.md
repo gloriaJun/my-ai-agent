@@ -27,7 +27,7 @@ Determine `action` from user intent:
 | 조회, 확인, 리스트, 목록, 뭐 있어 | `list` |
 | 취소, 삭제 | `delete` |
 
-All requests use: `POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action={action}"`
+All requests use: `POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action={action}"`
 
 ---
 
@@ -68,25 +68,25 @@ If `date` or `time` is missing, ask the user before proceeding.
 
 ```bash
 # Minimum (date + time)
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM"}'
 
 # With type
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson"}'
 
 # With room and duration
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":2,"duration":60}'
 
 # With recurring
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=add" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
@@ -137,13 +137,13 @@ If `skipped` is absent or empty, omit the "스킵된 날짜" section entirely. F
 
 ```bash
 # All reservations
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=list" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=list" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{}'
 
 # Filter by date
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=list" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=list" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{"date":"YYYY-MM-DD"}'
@@ -169,13 +169,13 @@ If the user does not provide an ID, call `action=list` first to retrieve reserva
 
 ```bash
 # 단일 취소
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=delete" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=delete" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{"ids":[3]}'
 
 # 복수 취소
-curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school&action=delete" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=delete" \
   -H "Content-Type: application/json" \
   --max-time 15 \
   -d '{"ids":[8,9,12]}'

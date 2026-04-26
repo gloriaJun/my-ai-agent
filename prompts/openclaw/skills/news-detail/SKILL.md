@@ -28,9 +28,7 @@ Determine `action` from user intent:
 | 더 자세히, 본문 요약, 내용 알려줘, 자세한 내용 | `article-summary` |
 | 댓글, 반응, 커뮤니티 반응, 사람들 반응, HN 댓글 | `comment-summary` |
 
-All requests use: `POST "${N8N_NEWS_WEBHOOK_URL}&action={action}"`
-
-> `N8N_NEWS_WEBHOOK_URL` already includes `?type=news&mode=detail`.
+All requests use: `POST "${N8N_WEBHOOK_BASE_URL}?type=news&mode=detail&action={action}"`
 
 ---
 
@@ -51,7 +49,7 @@ Fetches the article at the given URL and returns a detailed Korean summary.
 ### curl example
 
 ```bash
-curl -X POST "${N8N_NEWS_WEBHOOK_URL}&action=article-summary" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=news&mode=detail&action=article-summary" \
   -H "Content-Type: application/json" \
   --max-time 30 \
   -d '{"url":"https://..."}'
@@ -72,7 +70,7 @@ Fetches comments from Hacker News (via HN API) or GeekNews for the given URL and
 ### curl example
 
 ```bash
-curl -X POST "${N8N_NEWS_WEBHOOK_URL}&action=comment-summary" \
+curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=news&mode=detail&action=comment-summary" \
   -H "Content-Type: application/json" \
   --max-time 30 \
   -d '{"url":"https://..."}'
