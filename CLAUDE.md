@@ -80,6 +80,9 @@ See `docs/` for detailed workflow guides and TIL notes.
 - **Config template**: `config/openclaw/openclaw.template.json`
 - Config is re-rendered automatically on `start` and `restart`
 
+When adding a new Discord channel (OpenClaw persona + n8n skill webhook), load:
+`@docs/how-to/add-channel.md`
+
 ## Deploy
 
 Push to `main` triggers GitHub Actions (`.github/workflows/deploy.yml`), which SSHes into the remote server and runs `git pull --rebase && docker compose up -d`.
