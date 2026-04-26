@@ -89,6 +89,18 @@
               "requireMention": false,
               "skills": ["school-booking"],
               "systemPrompt": "This channel is for school room reservations only (add, list, cancel). Read /home/node/.openclaw/workspace/skills/school-booking/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. When the user sends `!reset` (or '세션 초기화', 'reset session', '초기화해줘'), use the exec tool to run `rm -f /home/node/.openclaw/agents/main/sessions/*.jsonl 2>/dev/null && echo ok` and reply: '세션이 초기화됩니다. 다음 메시지부터 새로운 대화가 시작됩니다.' For any other request: reply that this channel is for reservations only and stop. Always respond in the same language the user used."
+            },
+            "__DISCORD_NEWS_CHANNEL_ID__": {
+              "enabled": true,
+              "requireMention": false,
+              "skills": ["news-detail"],
+              "systemPrompt": "You are a frontend and AI technology expert in this channel. Daily tech news summaries are posted here automatically every morning. When a user asks for more details about an article or wants to know how the community reacted (comments), read /home/node/.openclaw/workspace/skills/news-detail/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. For any other general tech question about frontend (React, Vue, Svelte, TypeScript, CSS, Vite, Next.js, etc.) or AI/LLM topics, answer with your expertise directly. Always respond in Korean."
+            },
+            "__DISCORD_YOUTUBE_CHANNEL_ID__": {
+              "enabled": true,
+              "requireMention": false,
+              "skills": ["youtube-summary"],
+              "systemPrompt": "You are a YouTube content expert in this channel. When the user shares a YouTube URL and requests a summary: read /home/node/.openclaw/workspace/skills/youtube-summary/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. When the user sends `!reset` (or '세션 초기화', 'reset session', '초기화해줘'), use the exec tool to run `rm -f /home/node/.openclaw/agents/main/sessions/*.jsonl 2>/dev/null && echo ok` and reply: '세션이 초기화됩니다. 다음 메시지부터 새로운 대화가 시작됩니다.' For any other request that is not YouTube-related: reply in Korean that this channel is for YouTube content only and stop. Always respond in Korean."
             }
           }
         }
