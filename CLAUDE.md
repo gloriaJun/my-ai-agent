@@ -1,13 +1,13 @@
 # my-ai-agent
 
-Docker-based AI agent stack combining n8n (workflow automation) and OpenClaw (Discord agent interface). LLM backend uses Gemini API via Google AI. All services run on a remote server accessible via SSH alias `ocl`.
+Docker-based AI agent stack combining n8n (workflow automation) and OpenClaw (Slack agent interface). LLM backend uses Gemini API via Google AI. All services run on a remote server accessible via SSH alias `ocl`.
 
 ## Service Architecture
 
 | Service | Role | Port |
 |---|---|---|
 | n8n | Workflow orchestrator | 5678 |
-| OpenClaw | Discord agent interface | 18789 |
+| OpenClaw | Slack agent interface | 18789 |
 | Nginx Proxy Manager | Reverse proxy | 80/443/81 |
 
 All containers share an external Docker network named `proxy-net`.
@@ -18,7 +18,7 @@ All containers share an external Docker network named `proxy-net`.
 |---|---|
 | `docker-compose.yml` | Main service stack |
 | `.env.example` | Required service environment variables |
-| `config/openclaw/openclaw.template.json` | OpenClaw config template (Discord IDs, LLM model) |
+| `config/openclaw/openclaw.template.json` | OpenClaw config template (Slack channels, LLM model) |
 | `data/openclaw/openclaw.json` | Rendered OpenClaw config (gitignored, auto-generated) |
 | `prompts/openclaw/SOUL.md` | OpenClaw agent system prompt |
 | `prompts/openclaw/skills/*/SKILL.md` | OpenClaw skill definitions |
@@ -80,8 +80,8 @@ See `docs/` for detailed workflow guides and TIL notes.
 - **Config template**: `config/openclaw/openclaw.template.json`
 - Config is re-rendered automatically on `start` and `restart`
 
-When adding a new Discord channel (OpenClaw persona + n8n skill webhook), load:
-`@docs/how-to/add-channel.md`
+When adding a new Slack channel (OpenClaw persona + n8n skill webhook), load:
+`@docs/how-to/add-slack-channel.md`
 
 ## Deploy
 
@@ -98,3 +98,4 @@ Prerequisite: SSH config must have `ocl` as an alias for the remote server.
 | https://docs.openclaw.ai | OpenClaw 공식 문서 홈 |
 | https://docs.openclaw.ai/gateway/configuration | Config 전체 레퍼런스 (모델, fallback, provider 등) |
 | https://docs.openclaw.ai/concepts/model-failover | Model failover 동작 원리 상세 |
+| https://docs.openclaw.ai/channels/slack | OpenClaw Slack 채널 설정 (Socket Mode, replyToMode 등) |

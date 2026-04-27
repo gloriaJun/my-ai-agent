@@ -18,18 +18,10 @@ if [ -f "${ENV_PATH}" ]; then
   set +a
 fi
 
-: "${DISCORD_SERVER_ID:?DISCORD_SERVER_ID is required in .env}"
-: "${DISCORD_BOOKING_CHANNEL_ID:?DISCORD_BOOKING_CHANNEL_ID is required in .env}"
-: "${DISCORD_NEWS_CHANNEL_ID:?DISCORD_NEWS_CHANNEL_ID is required in .env}"
-: "${DISCORD_YOUTUBE_CHANNEL_ID:?DISCORD_YOUTUBE_CHANNEL_ID is required in .env}"
+: "${SLACK_BOT_TOKEN:?SLACK_BOT_TOKEN is required in .env}"
+: "${SLACK_SIGNING_SECRET:?SLACK_SIGNING_SECRET is required in .env}"
 
 mkdir -p "$(dirname "${OUTPUT_PATH}")"
-
-sed \
-  -e "s/__DISCORD_SERVER_ID__/${DISCORD_SERVER_ID}/g" \
-  -e "s/__DISCORD_BOOKING_CHANNEL_ID__/${DISCORD_BOOKING_CHANNEL_ID}/g" \
-  -e "s/__DISCORD_NEWS_CHANNEL_ID__/${DISCORD_NEWS_CHANNEL_ID}/g" \
-  -e "s/__DISCORD_YOUTUBE_CHANNEL_ID__/${DISCORD_YOUTUBE_CHANNEL_ID}/g" \
-  "${TEMPLATE_PATH}" > "${OUTPUT_PATH}"
+cp "${TEMPLATE_PATH}" "${OUTPUT_PATH}"
 
 echo "Rendered: ${OUTPUT_PATH}"

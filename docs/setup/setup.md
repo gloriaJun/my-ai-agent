@@ -7,7 +7,7 @@
 - 목적: 클라우드 LLM 기반의 자동화 에이전트 환경 구축
 - 핵심 스택:
   - n8n: 복잡한 워크플로우 및 외부 서비스 연동 자동화
-  - OpenClaw: 디스코드 연동 및 에이전트 게이트웨이
+  - OpenClaw: Slack 연동 및 에이전트 게이트웨이
   - Gemini API: LLM 추론 (Google Gemini 2.5 Flash)
   - Docker Compose: 모든 서비스의 컨테이너화 및 관리
 
@@ -44,16 +44,16 @@ N8N_HOST=0.0.0.0
 N8N_PATH=/
 N8N_ENCRYPTION_KEY=<random_key>
 WEBHOOK_URL=https://<domain>/
-N8N_BOOKING_WEBHOOK_URL=https://<domain>/webhook/my-ai-agent?type=booking
+GENERIC_TIMEZONE=Asia/Seoul
+N8N_WEBHOOK_BASE_URL=http://n8n:5678/webhook/my-ai-agent
 
 # OpenClaw
 OPENCLAW_BASE_PATH=/openclaw/
 OPENCLAW_GATEWAY_TOKEN=<token>
 
-# Discord
-DISCORD_SERVER_ID=<server_id>
-DISCORD_BOOKING_CHANNEL_ID=<channel_id>
-DISCORD_BOT_TOKEN=<bot_token>
+# Slack (시크릿만 .env 관리; 채널 ID는 openclaw.template.json에 직접 기입)
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=<signing_secret>
 
 # LLM
 GEMINI_API_KEY=<api_key>
@@ -83,7 +83,7 @@ graph TD
     C --> D[data/ 폴더 및 Docker 네트워크 생성]
     D --> E[openclaw.json 렌더링]
     E --> F[docker compose up -d]
-    F --> G[완료: n8n 대시보드 및 Discord 봇 활성화]
+    F --> G[완료: n8n 대시보드 및 Slack 봇 활성화]
 ```
 
 1. **환경 파일 준비**: `.env.example`을 `.env`로 복사하고 각 항목 입력

@@ -5,7 +5,7 @@
 Pattern 2: openclaw가 AI Agent로 동작하고 n8n이 실행 엔진 역할을 담당한다.
 
 ```
-Discord #예약 채널
+Slack #예약 채널
         ↓
 openclaw (대화 관리 + 분류 + JSON 조립)
   - 자연어 대화, 다회성 질문으로 정보 수집
@@ -21,7 +21,7 @@ n8n Switch (?mode= 값으로 단순 라우팅, AI 판단 없음)
         ↓
 각 워크플로우: 구조화 JSON → 예약 API 호출 → 결과 반환
         ↓
-openclaw → 자연어 응답 → Discord
+openclaw → 자연어 응답 → Slack (스레드)
 ```
 
 ---
@@ -55,7 +55,7 @@ n8n Switch 노드는 `?mode=` 값만 보고 라우팅한다. AI 판단 없음.
 수집 항목·webhook 호출 등 실행 상세는 skill 파일에 위임하여 중복을 피한다.
 
 ```json
-"__DISCORD_BOOKING_CHANNEL_ID__": {
+"C0B06QW9MQU": {
   "enabled": true,
   "requireMention": false,
   "skills": ["school-booking"],
@@ -132,7 +132,7 @@ Respond in the same language the user used.
 | `prompts/openclaw/skills/` | `{new}-booking/SKILL.md` 생성 (frontmatter 필수) |
 | n8n | `mode={new}` 케이스 워크플로우 추가 |
 
-skill 파일 추가 후 `docker compose up -d --force-recreate openclaw` 로 재시작하면 반영된다.
+skill 파일 추가 후 `bash scripts/ctl.sh restart openclaw` 로 재시작하면 반영된다.
 
 ---
 

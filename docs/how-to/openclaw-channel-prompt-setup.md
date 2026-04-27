@@ -1,6 +1,6 @@
 # OpenClaw 채널 프롬프트 설정 가이드
 
-openclaw Discord 채널에 채널별 지침(systemPrompt)과 스킬(skill)을 연결하는 설정 방법과, 시행착오를 통해 확인한 동작 원리를 기록한다.
+openclaw Slack 채널에 채널별 지침(systemPrompt)과 스킬(skill)을 연결하는 설정 방법과, 시행착오를 통해 확인한 동작 원리를 기록한다.
 
 ---
 
@@ -29,22 +29,26 @@ openclaw는 매 세션 시작 시 아래 파일을 순서대로 읽어 시스템
 
 ```json
 "channels": {
-  "discord": {
-    "guilds": {
-      "<SERVER_ID>": {
-        "channels": {
-          "<CHANNEL_ID>": {
-            "enabled": true,
-            "requireMention": false,
-            "skills": ["school-booking"],
-            "systemPrompt": "..."
-          }
-        }
+  "slack": {
+    "enabled": true,
+    "mode": "http",
+    "botToken": "${SLACK_BOT_TOKEN}",
+    "signingSecret": "${SLACK_SIGNING_SECRET}",
+    "webhookPath": "/openclaw/slack/events",
+    "replyToMode": "all",
+    "channels": {
+      "<CHANNEL_ID>": {
+        "enabled": true,
+        "requireMention": false,
+        "skills": ["school-booking"],
+        "systemPrompt": "..."
       }
     }
   }
 }
 ```
+
+> `CHANNEL_ID`는 Slack 채널 우클릭 → "채널 ID 복사"로 확인. 민감 정보가 아니므로 템플릿에 직접 기입한다.
 
 `openclaw.json`은 `config/openclaw/openclaw.template.json`에서 렌더링 스크립트를 통해 생성된다.
 변경 후 openclaw 컨테이너를 재시작해야 반영된다.
@@ -162,9 +166,9 @@ data/openclaw/agents/main/sessions/
 
 ### 세션 초기화 방법
 
-#### 방법 1: Discord에서 `!reset` 명령 (권장)
+#### 방법 1: Slack에서 `!reset` 명령 (권장)
 
-systemPrompt에 아래 지침을 포함하면 사용자가 Discord에서 직접 세션을 리셋할 수 있다:
+systemPrompt에 아래 지침을 포함하면 사용자가 Slack에서 직접 세션을 리셋할 수 있다:
 
 ```
 When the user sends `!reset` (or '세션 초기화', 'reset session', '초기화해줘'),

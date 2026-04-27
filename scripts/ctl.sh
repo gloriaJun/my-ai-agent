@@ -154,9 +154,11 @@ case "$1" in
         render_openclaw_config_if_needed
         select_container "true" "$2"
         if [ "$selected_name" == "ALL" ]; then
-            docker compose --project-directory "$REPO_DIR" restart
+            docker compose --project-directory "$REPO_DIR" pull
+            docker compose --project-directory "$REPO_DIR" up -d
         else
-            docker restart "$selected_name"
+            docker compose --project-directory "$REPO_DIR" pull "$selected_name"
+            docker compose --project-directory "$REPO_DIR" up -d "$selected_name"
         fi
         ;;
 

@@ -1,6 +1,6 @@
 # School Booking Bot 테스트 가이드
 
-openclaw Discord 예약 봇의 동작을 검증하는 테스트 시나리오와 확인 방법을 기록한다.
+openclaw Slack 예약 봇의 동작을 검증하는 테스트 시나리오와 확인 방법을 기록한다.
 
 ---
 
@@ -18,7 +18,7 @@ docker logs openclaw --tail 30
 
 ## 테스트 채널
 
-Discord **#booking** 채널에서 메시지 전송.
+Slack **#booking** 채널에서 메시지 전송 (멘션 없이).
 
 ---
 

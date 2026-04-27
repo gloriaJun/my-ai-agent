@@ -20,15 +20,15 @@ Ollama(뇌), n8n(지휘자), OpenClaw(수행 비서)를 이용하여 도커로 �
 
 ## ⚙️ OpenClaw 설정 템플릿
 
-Discord 길드/채널 ID는 `config/openclaw/openclaw.template.json`에 템플릿으로 관리하고,
-실행 전에 `.env` 값으로 `data/openclaw/openclaw.json`을 렌더링합니다.
+Slack 채널 ID는 `config/openclaw/openclaw.template.json`에 직접 기입하여 관리하고,
+실행 전에 `data/openclaw/openclaw.json`으로 렌더링됩니다.
 
 ```bash
 sh ./scripts/render-openclaw-config.sh
 ```
 
-- 템플릿 키: `__DISCORD_SERVER_ID__`, `__DISCORD_BOOKING_CHANNEL_ID__`
-- `.env` 필수 값: `DISCORD_SERVER_ID`, `DISCORD_BOOKING_CHANNEL_ID`
+- 채널 ID는 템플릿에 직접 기입 (환경 변수 불필요)
+- `.env` 필수 값: `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`
 - `scripts/setup.sh` / `scripts/ctl.sh start|restart` 실행 시 자동 렌더링됩니다.
 
 ## 🛠 설치 및 운영 가이드

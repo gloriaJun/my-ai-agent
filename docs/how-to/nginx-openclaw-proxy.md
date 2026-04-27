@@ -5,9 +5,12 @@ NPM(nginx proxy manager)에서 `/openclaw` prefix 경로로 openclaw 게이트�
 ## 아키텍처
 
 ```
-Browser → nginx (443) → openclaw:18789
-         location = /openclaw   (WebSocket + GET)
-         location /openclaw/    (UI, assets, API)
+Browser     → nginx (443) → openclaw:18789
+                location = /openclaw   (Control UI WebSocket + GET)
+                location /openclaw/    (UI assets, API, Slack HTTP events)
+
+Slack Event → nginx (443) → POST /openclaw/slack/events → openclaw:18789
+                location /openclaw/ 블록에서 처리됨 (일반 HTTP POST)
 ```
 
 ## openclaw 설정 요구사항
