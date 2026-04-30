@@ -50,9 +50,7 @@ curl -s -o /dev/null -X POST https://slack.com/api/reactions.add \
   (e.g. `agent:main:slack:channel:C0B06QW9MQU` → `C0B06QW9MQU`)
 - `MESSAGE_ID`: `message_id` from runtime context
 
-**Step 2 — After webhook responds, remove ⏳ then add result:**
-- Success → `white_check_mark` (✅)
-- Failure → `x` (❌)
+**Step 2 — After webhook responds, remove ⏳, output your text reply, then add result reaction:**
 
 ```bash
 # remove ⏳
@@ -60,8 +58,15 @@ curl -s -o /dev/null -X POST https://slack.com/api/reactions.remove \
   -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"channel":"<CHANNEL_ID>","timestamp":"<MESSAGE_ID>","name":"hourglass_flowing_sand"}'
+```
 
-# add result
+Then output your response as a text reply in the thread.
+
+Finally, add the result reaction:
+- Success → `white_check_mark` (✅)
+- Failure → `x` (❌)
+
+```bash
 curl -s -o /dev/null -X POST https://slack.com/api/reactions.add \
   -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
   -H "Content-Type: application/json" \
