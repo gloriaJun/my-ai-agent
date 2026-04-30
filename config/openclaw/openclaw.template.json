@@ -4,7 +4,7 @@
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
         "primary": "google/gemini-2.5-flash",
-        "fallbacks": ["google/gemini-2.5-flash-lite", "google/gemini-1.5-flash"]
+        "fallbacks": ["google/gemini-2.5-flash-lite"]
       },
       "compaction": {
         "reserveTokensFloor": 20000
@@ -14,7 +14,7 @@
       },
       "models": {
         "google/gemini-2.5-flash": {},
-        "google/gemini-1.5-flash": {}
+        "google/gemini-2.5-flash-lite": {}
       }
     }
   },
@@ -70,10 +70,6 @@
           {
             "id": "gemini-2.5-flash-lite",
             "name": "gemini-2.5-flash-lite"
-          },
-          {
-            "id": "gemini-1.5-flash",
-            "name": "gemini-1.5-flash"
           }
         ]
       }
