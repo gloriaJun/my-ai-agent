@@ -48,7 +48,7 @@ Slack **#booking** 채널에서 메시지 전송 (멘션 없이).
 
 | 입력 | `매주 금요일 오후 6시 레슨실 예약해줘` |
 |------|----------------------------------------|
-| webhook body | `{"date":"<next friday>","time":"18:00","type":"lesson","recurring":true}` |
+| webhook body | `{"date":"<next friday>","time":"18:00","type":"lesson","is_recurring":true,"thread_id":"<slack_thread_ts>"}` |
 
 **확인 포인트:**
 - 봇이 호실을 묻지 않고 바로 curl 실행
@@ -85,7 +85,7 @@ Slack **#booking** 채널에서 메시지 전송 (멘션 없이).
 
 | 입력 | `3번 예약 취소해줘` |
 |------|----------------------|
-| webhook body | `{"id":3}` |
+| webhook body | `{"ids":[3]}` |
 | query param | `&mode=school&action=delete` |
 
 ### 3-2. ID 모를 때

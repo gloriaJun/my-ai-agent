@@ -44,17 +44,24 @@ If `date` or `time` is missing, ask the user before proceeding.
 
 ### Optional fields — include ONLY when explicitly stated by the user
 
-| Field    | Key       | Format           | Default if omitted |
-|----------|-----------|------------------|--------------------|
-| Type     | type      | `lesson` / `practice` | `lesson`    |
-| Duration | duration  | 30 / 60 / 90 / 120 (minutes) | omit |
-| Room     | room      | integer          | omit               |
-| Recurring| recurring | true / false     | false              |
+| Field    | Key          | Format                        | Default if omitted |
+|----------|--------------|-------------------------------|--------------------|
+| Type     | type         | `lesson` / `practice`         | `lesson`           |
+| Duration | duration     | 30 / 60 / 90 / 120 (minutes)  | omit               |
+| Room     | room         | string (e.g. `"2"`)           | omit               |
+| Recurring| is_recurring | true / false                  | false              |
+
+### Auto-included fields
+
+| Field     | Key         | Value                              |
+|-----------|-------------|------------------------------------|
+| Thread ID | thread_id   | Slack thread_ts of the current conversation |
 
 **IMPORTANT:**
-- Never ask for `room` or `recurring` — room is assigned automatically by the backend.
-- Recurring defaults to false unless the user explicitly says "매주", "반복" or similar.
+- Never ask for `room` or `is_recurring` — room is assigned automatically by the backend.
+- `is_recurring` defaults to false unless the user explicitly says "매주", "반복" or similar.
 - "레슨실" → `type: lesson`, "연습실" → `type: practice`. Never put facility name in `room`.
+- Always include `thread_id` with the Slack `thread_ts` of the message that triggered this request.
 - As soon as `date` and `time` are known, call the webhook immediately.
 
 ### Date / Time handling
@@ -71,25 +78,25 @@ If `date` or `time` is missing, ask the user before proceeding.
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM"}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","thread_id":"<slack_thread_ts>"}'
 
 # With type
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson"}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","thread_id":"<slack_thread_ts>"}'
 
 # With room and duration
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":2,"duration":60}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":"2","duration":60,"thread_id":"<slack_thread_ts>"}'
 
 # With recurring
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","recurring":true}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","is_recurring":true,"thread_id":"<slack_thread_ts>"}'
 ```
 
 **Success**: `status === "ok"` AND `reservations` array is non-empty.

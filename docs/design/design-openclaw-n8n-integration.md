@@ -106,14 +106,14 @@ Handles school practice room and lesson room reservations.
 |-------------|-----------|--------------|
 | Date        | date      | YYYY-MM-DD   |
 | Start time  | time      | HH:MM        |
-| Room number | room      | integer      |
-| Recurring   | recurring | true / false |
+| Room number | room      | string       |
+| Recurring   | is_recurring | true / false |
 
 ## Execution
 
 curl -X POST "${N8N_BOOKING_WEBHOOK_URL}&mode=school" \
   -H "Content-Type: application/json" \
-  -d '{"date":"...","time":"...","room":...,"recurring":...}'
+  -d '{"date":"...","time":"...","room":"...","is_recurring":...,"thread_id":"..."}'
 
 ## Language
 
