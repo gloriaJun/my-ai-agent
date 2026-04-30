@@ -46,7 +46,8 @@ curl -s -o /dev/null -X POST https://slack.com/api/reactions.add \
   -H "Content-Type: application/json" \
   -d '{"channel":"<CHANNEL_ID>","timestamp":"<MESSAGE_ID>","name":"hourglass_flowing_sand"}'
 ```
-- `CHANNEL_ID`: strip `channel:` prefix from `chat_id` in runtime context
+- `CHANNEL_ID`: extract the segment after `channel:` in `chat_id`
+  (e.g. `agent:main:slack:channel:C0B06QW9MQU` → `C0B06QW9MQU`)
 - `MESSAGE_ID`: `message_id` from runtime context
 
 **Step 2 — After webhook responds, remove ⏳ then add result:**
