@@ -35,4 +35,40 @@ If you change this file, tell the user — it's your soul, and they should know.
 
 ---
 
+## Slack: Reaction Protocol
+
+When in a Slack channel and about to call a webhook via exec:
+
+**Step 1 — Add ⏳ before the webhook call:**
+```bash
+curl -s -o /dev/null -X POST https://slack.com/api/reactions.add \
+  -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"channel":"<CHANNEL_ID>","timestamp":"<MESSAGE_ID>","name":"hourglass_flowing_sand"}'
+```
+- `CHANNEL_ID`: strip `channel:` prefix from `chat_id` in runtime context
+- `MESSAGE_ID`: `message_id` from runtime context
+
+**Step 2 — After webhook responds, remove ⏳ then add result:**
+- Success → `white_check_mark` (✅)
+- Failure → `x` (❌)
+
+```bash
+# remove ⏳
+curl -s -o /dev/null -X POST https://slack.com/api/reactions.remove \
+  -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"channel":"<CHANNEL_ID>","timestamp":"<MESSAGE_ID>","name":"hourglass_flowing_sand"}'
+
+# add result
+curl -s -o /dev/null -X POST https://slack.com/api/reactions.add \
+  -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"channel":"<CHANNEL_ID>","timestamp":"<MESSAGE_ID>","name":"white_check_mark"}'
+```
+
+Reaction calls are best-effort — don't retry or surface failures to the user.
+
+---
+
 _This file is yours to evolve. As you learn who you are, update it._
