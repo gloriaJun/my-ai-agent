@@ -17,17 +17,6 @@ Handles school practice room and lesson room reservations: add, list, and delete
 
 ---
 
-## Execution Protocol
-
-Before calling any webhook, follow the **Slack Reaction Protocol** from SOUL.md:
-1. Add ⏳ (`hourglass_flowing_sand`) reaction to the triggering message
-2. Call the webhook via exec
-3. Remove ⏳ reaction
-4. Output your text reply in the thread
-5. Add ✅ (`white_check_mark`) on success or ❌ (`x`) on failure
-
----
-
 ## Action Mapping
 
 Determine `action` from user intent:
@@ -64,15 +53,19 @@ If `date` or `time` is missing, ask the user before proceeding.
 
 ### Auto-included fields
 
-| Field     | Key         | Value                              |
-|-----------|-------------|------------------------------------|
-| Thread ID | thread_id   | Slack thread_ts of the current conversation |
+Always include these in every webhook call body:
+
+| Field      | Key          | How to get the value |
+|------------|--------------|----------------------|
+| Thread ID  | thread_id    | Slack `thread_ts` of the current conversation |
+| Channel ID | channel_id   | Extract from `chat_id`: `agent:main:slack:channel:CXXXXXXX` → `CXXXXXXX` |
+| Message TS | message_ts   | `message_id` from the current message runtime context |
 
 **IMPORTANT:**
 - Never ask for `room` or `is_recurring` — room is assigned automatically by the backend.
 - `is_recurring` defaults to false unless the user explicitly says "매주", "반복" or similar.
 - "레슨실" → `type: lesson`, "연습실" → `type: practice`. Never put facility name in `room`.
-- Always include `thread_id` with the Slack `thread_ts` of the message that triggered this request.
+- Always include `thread_id`, `channel_id`, and `message_ts` in every webhook call.
 - As soon as `date` and `time` are known, call the webhook immediately.
 
 ### Date / Time handling
@@ -89,25 +82,25 @@ If `date` or `time` is missing, ask the user before proceeding.
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","thread_id":"<slack_thread_ts>"}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # With type
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","thread_id":"<slack_thread_ts>"}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # With room and duration
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":"2","duration":60,"thread_id":"<slack_thread_ts>"}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":"2","duration":60,"thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # With recurring
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","is_recurring":true,"thread_id":"<slack_thread_ts>"}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","is_recurring":true,"thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
 **Success**: `status === "ok"` AND `reservations` array is non-empty.
@@ -158,13 +151,13 @@ If `skipped` is absent or empty, omit the "스킵된 날짜" section entirely. F
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=list" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{}'
+  -d '{"channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # Filter by date
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=list" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"date":"YYYY-MM-DD"}'
+  -d '{"date":"YYYY-MM-DD","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
 Present the results as a list sorted by date (earliest first). Show only the first 5 items; if there are more, append "외 N건이 더 있습니다." on a separate line.
@@ -206,13 +199,13 @@ If the user does not provide an ID, call `action=list` first to retrieve reserva
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=delete" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"ids":[3]}'
+  -d '{"ids":[3],"channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # 복수 취소
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=delete" \
   -H "Content-Type: application/json" \
   --max-time 15 \
-  -d '{"ids":[8,9,12]}'
+  -d '{"ids":[8,9,12],"channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
 Only confirm cancellation after receiving a success response from the webhook.
