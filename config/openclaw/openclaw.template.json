@@ -54,6 +54,11 @@
   "tools": {
     "profile": "coding"
   },
+  "messages": {
+    "groupChat": {
+      "visibleReplies": "automatic"
+    }
+  },
   "models": {
     "mode": "replace",
     "providers": {
