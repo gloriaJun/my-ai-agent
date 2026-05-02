@@ -20,9 +20,26 @@ jobs:
             set -e
             cd ~/my-ai-agent
 
+            BEFORE=$(git rev-parse HEAD)
             git pull --rebase
 
+            # OpenClaw 관련 파일 변경 감지
+            CHANGED=$(git diff --name-only "$BEFORE" HEAD 2>/dev/null || echo "")
+            CONFIG_CHANGED=0; PROMPTS_CHANGED=0
+            echo "$CHANGED" | grep -q "^config/openclaw/" && CONFIG_CHANGED=1 || true
+            echo "$CHANGED" | grep -q "^prompts/openclaw/" && PROMPTS_CHANGED=1 || true
+
+            if [ $((CONFIG_CHANGED + PROMPTS_CHANGED)) -gt 0 ]; then
+              echo "OpenClaw 관련 파일 변경 감지 (config=$CONFIG_CHANGED, prompts=$PROMPTS_CHANGED)"
+              docker compose stop openclaw
+            fi
+
             sudo bash scripts/render-openclaw-config.sh
+
+            if [ "$PROMPTS_CHANGED" -eq 1 ]; then
+              echo "prompts 변경 감지 → 세션 초기화"
+              bash scripts/ctl.sh reset-session
+            fi
 
             sudo chown -R 1000:1000 data/
 

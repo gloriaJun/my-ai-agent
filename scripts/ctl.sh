@@ -15,13 +15,17 @@
 #   log            실시간 로그 보기 (docker logs -f)
 #   exec           컨테이너 내부 명령 실행 또는 셸 접속
 #                    명령어 미입력 시 /bin/bash → /bin/sh 순으로 접속
-#   pair-list      OpenClaw 페어링 상태 조회 (원격: $REMOTE_HOST, 기본값 ocl)
-#   approve-pair   OpenClaw 최신 pending 페어링 자동 승인 (원격)
+#   pair-list      OpenClaw 페어링 상태 조회
+#   approve-pair   OpenClaw 최신 pending 페어링 자동 승인
 #   nginx-backup   서버에서 nginx proxy_host 설정을 config/nginx/proxy-host.json으로 백업
 #   nginx-restore  config/nginx/proxy-host.json을 서버에 복원하고 nginx reload
-#   reset-session  원격 OpenClaw 세션 파일 초기화 (sessions/*.jsonl + sessions.json 삭제)
+#   reset-session  OpenClaw 세션 파일 초기화 (sessions/*.jsonl + sessions.json 삭제)
 #   deploy         git push 후 원격 서버에 pull & docker compose up -d
 #   help           도움말 보기
+#
+# 글로벌 옵션:
+#   --remote       deploy 제외 모든 커맨드를 원격 서버에서 실행 (SSH 경유)
+#                  예) bash ./scripts/ctl.sh restart openclaw --remote
 #
 # 환경 변수:
 #   REMOTE_HOST    원격 서버 SSH 호스트 (기본값: ocl)
@@ -36,6 +40,25 @@ NC='\033[0m'
 # 경로 정의
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
+
+# --remote 플래그 조기 파싱 (deploy 제외: 로컬 orchestration 커맨드)
+REMOTE_EXEC=false
+FILTERED_ARGS=()
+for _arg in "$@"; do
+  if [ "$_arg" = "--remote" ]; then REMOTE_EXEC=true
+  else FILTERED_ARGS+=("$_arg"); fi
+done
+
+if [ "$REMOTE_EXEC" = true ] && [ "${FILTERED_ARGS[0]:-}" != "deploy" ]; then
+  REMOTE_HOST="${REMOTE_HOST:-ocl}"
+  case "${FILTERED_ARGS[0]:-}" in
+    log|exec) SSH_T="-t" ;;
+    *)        SSH_T="" ;;
+  esac
+  exec ssh $SSH_T "$REMOTE_HOST" "cd ~/my-ai-agent && bash scripts/ctl.sh ${FILTERED_ARGS[*]}"
+fi
+
+set -- "${FILTERED_ARGS[@]}"
 
 # 고정 서비스 목록
 SERVICES=("n8n" "openclaw" "nginx-proxy")
@@ -63,13 +86,18 @@ show_help() {
     echo -e "  ${GREEN}restart${NC}      : 컨테이너 재시작"
     echo -e "  ${GREEN}log${NC}          : 실시간 컨테이너 로그 보기"
     echo -e "  ${GREEN}exec${NC}         : 컨테이너 내부 명령 실행 또는 셸 접속"
-    echo -e "  ${GREEN}pair-list${NC}    : OpenClaw 페어링 상태 조회(원격)"
-    echo -e "  ${GREEN}approve-pair${NC} : OpenClaw 최신 pending 페어링 승인(원격)"
+    echo -e "  ${GREEN}pair-list${NC}    : OpenClaw 페어링 상태 조회"
+    echo -e "  ${GREEN}approve-pair${NC} : OpenClaw 최신 pending 페어링 승인"
     echo -e "  ${GREEN}nginx-backup${NC} : nginx 설정을 서버에서 가져와 config/nginx/에 저장"
     echo -e "  ${GREEN}nginx-restore${NC}: config/nginx/의 설정을 서버에 적용하고 reload"
-    echo -e "  ${GREEN}reset-session${NC}: OpenClaw 세션 파일 초기화(원격)"
+    echo -e "  ${GREEN}reset-session${NC}: OpenClaw 세션 파일 초기화"
     echo -e "  ${GREEN}deploy${NC}       : git push 후 원격 서버에 pull & 컨테이너 재시작"
     echo -e "  ${GREEN}help${NC}         : 도움말 보기"
+    echo -e ""
+    echo -e "${YELLOW}글로벌 옵션:${NC}"
+    echo -e "  ${GREEN}--remote${NC}     : deploy 제외 모든 커맨드를 원격 서버(\$REMOTE_HOST)에서 실행"
+    echo -e "               예) bash ./scripts/ctl.sh restart openclaw --remote"
+    echo -e "               예) bash ./scripts/ctl.sh reset-session --remote"
 }
 
 # 컨테이너 상태 색상 레이블 반환
@@ -187,9 +215,8 @@ case "$1" in
         ;;
 
     pair-list)
-        REMOTE_HOST="${REMOTE_HOST:-ocl}"
-        echo -e "${YELLOW}>>> 원격 OpenClaw 페어링 상태 조회: ${REMOTE_HOST}${NC}"
-        ssh "$REMOTE_HOST" "docker exec openclaw node dist/index.js devices list"
+        echo -e "${YELLOW}>>> OpenClaw 페어링 상태 조회${NC}"
+        docker exec openclaw node dist/index.js devices list
         ;;
 
     nginx-backup)
@@ -201,9 +228,10 @@ case "$1" in
         ;;
 
     reset-session)
-        REMOTE_HOST="${REMOTE_HOST:-ocl}"
-        echo -e "${YELLOW}>>> 원격 OpenClaw 세션 초기화: ${REMOTE_HOST}${NC}"
-        ssh "$REMOTE_HOST" "cd ~/my-ai-agent && sudo rm -f data/openclaw/agents/main/sessions/*.jsonl data/openclaw/agents/main/sessions/sessions.json && echo '세션 파일 삭제 완료'"
+        SESSIONS_DIR="$REPO_DIR/data/openclaw/agents/main/sessions"
+        echo -e "${YELLOW}>>> OpenClaw 세션 파일 초기화${NC}"
+        sudo rm -f "$SESSIONS_DIR"/*.jsonl "$SESSIONS_DIR/sessions.json"
+        echo "세션 파일 삭제 완료"
         ;;
 
     deploy)
@@ -213,14 +241,12 @@ case "$1" in
         ;;
 
     approve-pair)
-        REMOTE_HOST="${REMOTE_HOST:-ocl}"
-        echo -e "${YELLOW}>>> 원격 OpenClaw 최신 pending 요청 확인: ${REMOTE_HOST}${NC}"
+        echo -e "${YELLOW}>>> OpenClaw 최신 pending 요청 확인${NC}"
 
         request_id=$(
-            ssh "$REMOTE_HOST" \
-            "docker exec openclaw node dist/index.js devices approve --latest 2>/dev/null \
+            docker exec openclaw node dist/index.js devices approve --latest 2>/dev/null \
             | sed -n 's/^Approve this exact request with: openclaw devices approve //p' \
-            | head -n1"
+            | head -n1
         )
 
         if [ -z "$request_id" ]; then
@@ -230,9 +256,9 @@ case "$1" in
 
         echo -e "${BLUE}요청 ID:${NC} ${request_id}"
         echo -e "${YELLOW}>>> pending 요청 승인 실행${NC}"
-        ssh "$REMOTE_HOST" "docker exec openclaw node dist/index.js devices approve ${request_id}"
+        docker exec openclaw node dist/index.js devices approve "${request_id}"
         echo -e "${YELLOW}>>> 승인 후 상태 확인${NC}"
-        ssh "$REMOTE_HOST" "docker exec openclaw node dist/index.js devices list"
+        docker exec openclaw node dist/index.js devices list
         ;;
 
     help|*)
