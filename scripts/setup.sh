@@ -27,8 +27,4 @@ fi
 echo "Starting all services..."
 docker compose -f "$ROOT_DIR/docker-compose.yml" up -d
 
-# 4. 모델 다운로드
-echo "Pulling AI Model (llama3.2:3b)..."
-ollama pull llama3.2:3b
-
 echo "Success! http://localhost:18789"
