@@ -3,15 +3,17 @@
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
       "model": {
-        "primary": "google/gemini-2.5-flash",
-        "fallbacks": ["google/gemini-2.5-flash-lite"]
+        "primary": "${LLM_PRIMARY_MODEL}",
+        "fallbacks": ["${LLM_FALLBACK_MODEL}"]
       },
       "compaction": {
         "reserveTokensFloor": 20000
       },
       "models": {
         "google/gemini-2.5-flash": {},
-        "google/gemini-2.5-flash-lite": {}
+        "google/gemini-2.5-flash-lite": {},
+        "openai/gpt-4o-mini": {},
+        "openai/gpt-4o": {}
       }
     }
   },
@@ -67,6 +69,21 @@
           {
             "id": "gemini-2.5-flash-lite",
             "name": "gemini-2.5-flash-lite"
+          }
+        ]
+      },
+      "openai": {
+        "baseUrl": "https://api.openai.com",
+        "api": "openai",
+        "apiKey": "OPENAI_API_KEY",
+        "models": [
+          {
+            "id": "gpt-4o-mini",
+            "name": "gpt-4o-mini"
+          },
+          {
+            "id": "gpt-4o",
+            "name": "gpt-4o"
           }
         ]
       }

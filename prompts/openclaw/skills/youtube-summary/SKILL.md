@@ -13,7 +13,7 @@ metadata:
 
 # YouTube Summary Skill
 
-YouTube 영상 URL을 받아 n8n을 통해 Gemini AI로 요약한 결과를 반환한다.
+YouTube 영상 URL을 받아 n8n을 통해 AI로 요약한 결과를 반환한다.
 
 ---
 
