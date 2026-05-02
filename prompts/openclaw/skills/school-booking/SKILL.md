@@ -106,16 +106,18 @@ curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
 **Success**: `status === "ok"` AND `reservations` array is non-empty.
 
 On success, output the `message` field as a header, then list all items in `reservations` using the same format as action=list. For each item:
+- `date` is the 이용일 (YYYY-MM-DD); derive day of week from it
+- Time: `start_time` ~ `end_time`
 - Map `facility_type`: `"lesson"` → 레슨실, `"practice"` → 연습실
-- Map `room_number`: digit string (e.g. `"3"`) → "N호실"; `"자동선택"` → "(자동배정)"
-- Format `date` (YYYY-MM-DD) as `YYYY년 M월 D일 요일`
+- Map `room_number`: digit string (e.g. `"3"`) → "N호"; `"자동선택"` → "자동배정"
+- Format: `- #<id> <date> <요일> <start_time> ~ <end_time> (<facility_type>: <room>)`
 
 Example output (reservations only):
 ```
 예약이 등록되었습니다. (총 8건)
 
-- 예약 ID: 42, 날짜: 2026년 4월 14일 월, 시간: 16:30 - 18:00, 종류: 레슨실 3호실
-- 예약 ID: 43, 날짜: 2026년 4월 21일 월, 시간: 16:30 - 18:00, 종류: 레슨실 3호실
+- #42 2026-04-14 월 16:30 ~ 18:00 (레슨실: 3호)
+- #43 2026-04-21 월 16:30 ~ 18:00 (레슨실: 3호)
 ...
 ```
 
@@ -123,14 +125,14 @@ Example output (with skipped dates):
 ```
 예약이 등록되었습니다. (총 7건, 1건 스킵)
 
-- 예약 ID: 42, 날짜: 2026년 4월 18일 토, 시간: 16:30 - 18:00, 종류: 레슨실 3호실
+- #42 2026-04-18 토 16:30 ~ 18:00 (레슨실: 3호)
 ...
 
 스킵된 날짜:
-- 2026년 5월 5일 화 — 공휴일 (어린이날)
+- 2026-05-05 화 — 공휴일 (어린이날)
 ```
 
-If `skipped` is absent or empty, omit the "스킵된 날짜" section entirely. Format `skipped[].date` the same as reservation dates (`YYYY년 M월 D일 요일`), and append ` — {reason}`.
+If `skipped` is absent or empty, omit the "스킵된 날짜" section entirely. Format `skipped[].date` as `YYYY-MM-DD 요일`, and append ` — {reason}`.
 
 **Failure**: `status` ≠ `"ok"`, or `reservations` is absent or empty → inform the user the booking did not go through. Include the `message` field if present.
 
@@ -160,20 +162,21 @@ curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=list" \
   -d '{"date":"YYYY-MM-DD","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
-Present the results as a list sorted by date (earliest first). Show only the first 5 items; if there are more, append "외 N건이 더 있습니다." on a separate line.
+Present the results as a list sorted by `date` (이용일, earliest first). Show only the first 5 items; if there are more, append "외 N건이 더 있습니다." on a separate line.
 
-Start with the total count header:
-- If showing all: "총 N건의 예약이 있습니다."
-- If truncated: "총 N건의 예약이 있습니다. (가까운 5건 표시)"
+Start with the total count header: "총 N건의 예약이 있습니다."
 
-For each item show: reservation ID, date (YYYY년 M월 D일 요일), time range, and type+room. For type+room: map `facility_type` ("lesson"→레슨실, "practice"→연습실), then append room — if `room_number` is a digit string (e.g. "3") append "N호실" (e.g. "레슨실 3호실"); if `room_number` is "자동선택" append "(자동배정)". Never output raw JSON.
+For each item, use format: `- #<id> <date> <요일> <start_time> ~ <end_time> (<facility_type>: <room>)`
+- `date` is the 이용일 (YYYY-MM-DD); derive day of week from it
+- `start_time` ~ `end_time`: from respective API fields
+- type+room: map `facility_type` ("lesson"→레슨실, "practice"→연습실); if `room_number` is a digit string (e.g. "3") use "N호" (e.g. "레슨실: 3호"); if `room_number` is "자동선택" use "자동배정" (e.g. "레슨실: 자동배정"). Never output raw JSON.
 
 Example output (truncated):
 ```
-총 12건의 예약이 있습니다. (가까운 5건 표시)
+총 12건의 예약이 있습니다.
 
-- 예약 ID: 8, 날짜: 2026년 4월 27일 월, 시간: 14:30 - 16:30, 종류: 레슨실 3호실
-- 예약 ID: 9, 날짜: 2026년 4월 28일 화, 시간: 16:30 - 18:00, 종류: 레슨실 (자동배정)
+- #8 2026-04-27 월 14:30 ~ 16:30 (레슨실: 3호)
+- #9 2026-04-28 화 16:30 ~ 18:00 (레슨실: 자동배정)
 ...
 외 7건이 더 있습니다.
 ```
