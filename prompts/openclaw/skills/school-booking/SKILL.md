@@ -17,6 +17,17 @@ Handles school practice room and lesson room reservations: add, list, and delete
 
 ---
 
+## Execution Protocol
+
+Before calling any webhook, follow the **Slack Reaction Protocol** from SOUL.md:
+1. Add ⏳ (`hourglass_flowing_sand`) reaction to the triggering message
+2. Call the webhook via exec
+3. Remove ⏳ reaction
+4. Output your text reply in the thread
+5. Add ✅ (`white_check_mark`) on success or ❌ (`x`) on failure
+
+---
+
 ## Action Mapping
 
 Determine `action` from user intent:
