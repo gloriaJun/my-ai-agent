@@ -1,3 +1,5 @@
+name: nginx-infra
+
 services:
   nginx-proxy:
     image: "jc21/nginx-proxy-manager:latest"
