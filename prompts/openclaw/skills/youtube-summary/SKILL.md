@@ -13,27 +13,41 @@ metadata:
 
 # YouTube Summary Skill
 
-YouTube 영상 URL을 받아 n8n을 통해 AI로 요약한 결과를 반환한다.
+YouTube 영상 URL 또는 키워드를 받아 n8n을 통해 AI로 요약한 결과를 반환한다.
 
 ---
 
 ## Required fields
 
+URL 또는 키워드 중 하나를 반드시 제공해야 한다.
+
 | Field | Key | Description |
 |-------|-----|-------------|
 | YouTube URL | url | 전체 YouTube URL (youtu.be 또는 youtube.com) |
+| 검색 키워드 | query | YouTube 영상을 검색할 키워드 (URL이 없을 때) |
 
-URL이 없거나 YouTube URL이 아니면 제공을 요청한다.
+둘 다 없으면 URL 또는 키워드를 요청한다.
 
 ---
 
 ## Execution
+
+### URL로 요약
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&action=summarize" \
   -H "Content-Type: application/json" \
   --max-time 60 \
   -d '{"url":"<YouTube URL>"}'
+```
+
+### 키워드로 검색 후 요약
+
+```bash
+curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&action=summarize" \
+  -H "Content-Type: application/json" \
+  --max-time 60 \
+  -d '{"query":"<검색 키워드>"}'
 ```
 
 **성공**: `status === "ok"` + `summary` 필드 존재 → summary를 그대로 출력.
