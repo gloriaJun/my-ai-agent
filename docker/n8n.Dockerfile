@@ -1,4 +1,4 @@
+FROM docker:cli AS docker-cli
+
 FROM n8nio/n8n:latest
-USER root
-RUN apk add --no-cache docker-cli
-USER node
+COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
