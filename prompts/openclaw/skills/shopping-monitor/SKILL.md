@@ -13,6 +13,9 @@ metadata:
 
 # Shopping Monitor Skill
 
+> **IMPORTANT**: For EVERY user request, you MUST call the `exec` tool to run the curl command first.
+> Do NOT respond before exec is called — you have no knowledge of registration state without the webhook call.
+
 사용자 요청을 받아 3가지 유형의 모니터링을 등록하고 관리한다.
 
 | type | 설명 | 예시 요청 |
