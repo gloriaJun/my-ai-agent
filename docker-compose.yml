@@ -22,9 +22,14 @@ services:
   #   restart: unless-stopped
 
   n8n:
-    image: n8nio/n8n:latest
+    build:
+      context: .
+      dockerfile: docker/n8n.Dockerfile
+    image: n8n-custom
     container_name: n8n
     user: "1000:1000"
+    group_add:
+      - "988"
     # ports:
     # - "5678:5678"
     extra_hosts:
@@ -40,6 +45,7 @@ services:
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
     volumes:
       - ./data/n8n:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
     deploy:
