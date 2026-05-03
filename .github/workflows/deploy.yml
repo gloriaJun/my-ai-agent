@@ -23,7 +23,7 @@ jobs:
             cd ~/my-ai-agent
 
             BEFORE=$(git rev-parse HEAD)
-            git pull --rebase
+            git pull --rebase origin main
 
             # OpenClaw 관련 파일 변경 감지
             CHANGED=$(git diff --name-only "$BEFORE" HEAD 2>/dev/null || echo "")
