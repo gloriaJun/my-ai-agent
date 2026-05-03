@@ -31,3 +31,8 @@ logs/
 .idea/
 *.swp
 *.bak
+
+# --- [ T World 자동화 ] ---
+automations/tworld/.env
+automations/tworld/config.json
+automations/tworld/screenshots/
