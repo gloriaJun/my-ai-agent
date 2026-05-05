@@ -13,6 +13,9 @@ metadata:
 
 # School Booking Skill
 
+> **IMPORTANT**: For EVERY user request, you MUST call the `exec` tool to run the curl command first.
+> Do NOT respond before exec is called — you have no knowledge of the booking result without the webhook call.
+
 Handles school practice room and lesson room reservations: add, list, and delete.
 
 ---
