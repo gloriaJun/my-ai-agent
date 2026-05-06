@@ -71,6 +71,12 @@ n8n-mcp MCP server is enabled. Key tools: `search_nodes`, `get_node_types`, `val
 
 Always call `get_node_types` before writing workflow code — do not guess parameter names.
 
+**Workflow modification procedure** (via MCP):
+1. `validate_workflow` — must pass before saving
+2. `update_workflow` — saves as **draft only**; the active version is not changed
+3. Test if feasible (`execute_workflow` or trigger via webhook)
+4. `publish_workflow` — **always required** to activate; never skip this step
+
 See `docs/` for detailed workflow guides and TIL notes.
 
 ## OpenClaw Agent Configuration
@@ -90,6 +96,12 @@ Push to `main` triggers GitHub Actions (`.github/workflows/deploy.yml`), which S
 Manual deploy: `bash ./scripts/ctl.sh deploy`
 
 Prerequisite: SSH config must have `ocl` as an alias for the remote server.
+
+**Note**: `ctl.sh restart <container>` restarts the container only — it does NOT pull latest code. Always use `deploy` when repo file changes (SKILL.md, openclaw.template.json, etc.) need to reach the remote server.
+
+**Repo modification guidelines**:
+- **Post-deploy verification needed** (behavior change, config update, etc.) → run `ctl.sh deploy` then verify the behavior on the remote
+- **Verification not needed** (docs, comments, non-functional changes) → confirm with user first, then push (GitHub Actions auto-deploys)
 
 ## References
 
