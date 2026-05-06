@@ -13,25 +13,25 @@ metadata:
 
 # YouTube Skill
 
-YouTube 영상 요약, 채널 검색, 모니터링 구독/해제/목록 조회를 처리한다.
+Handles YouTube video summarization, channel search, and monitoring subscription management.
 
 ---
 
 ## Actions
 
-| action | mode | 필수 필드 | 설명 |
+| action | mode | required fields | description |
 |---|---|---|---|
-| `summarize` | `summary` | `url` 또는 `query` | 영상 URL 또는 키워드로 요약 |
-| `search-channels` | `channel` | `query` | 키워드로 YouTube 채널 검색 |
-| `subscribe` | `channel` | `channel_id` 또는 `channel_handle`, `channel_name`, `slack_thread_ts` | 채널 모니터링 등록 |
-| `unsubscribe` | `channel` | `channel_id` | 채널 모니터링 해제 |
-| `list-subscriptions` | `channel` | (없음) | 모니터링 중인 채널 목록 조회 |
+| `summarize` | `summary` | `url` or `query` | Summarize a video by URL or keyword search |
+| `search-channels` | `channel` | `query` | Search YouTube channels by keyword |
+| `subscribe` | `channel` | `channel_id` or `channel_handle`, `channel_name`, `slack_thread_ts` | Register a channel for monitoring |
+| `unsubscribe` | `channel` | `channel_id` | Remove a channel from monitoring |
+| `list-subscriptions` | `channel` | (none) | List all monitored channels |
 
 ---
 
 ## Execution
 
-### 영상 요약 (URL)
+### Video Summary (URL)
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=summary&action=summarize" \
@@ -40,40 +40,39 @@ curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=summary&action=summar
   -d '{"url":"<YouTube URL>"}'
 ```
 
-### 영상 요약 (키워드 검색)
+### Video Summary (keyword search)
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=summary&action=summarize" \
   -H "Content-Type: application/json" \
   --max-time 60 \
-  -d '{"query":"<검색 키워드>"}'
+  -d '{"query":"<search keyword>"}'
 ```
 
-### 채널 검색
+### Channel Search
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=search-channels" \
   -H "Content-Type: application/json" \
   --max-time 30 \
-  -d '{"query":"<검색 키워드>"}'
+  -d '{"query":"<search keyword>"}'
 ```
 
-**성공**: `status === "ok"` + `channels` 배열 존재 → 채널 목록 출력.  
-각 항목: `channel_name`, `channel_handle`, `channel_id`, `channel_url`, `description`
+**Success**: `status === "ok"` + `channels` array — display the channel list.  
+Each item fields: `channel_name`, `channel_handle`, `channel_id`, `channel_url`, `description`
 
-### 채널 모니터링 등록
+### Subscribe to Channel
 
-`subscribe` 시 `slack_thread_ts`는 현재 Slack 메시지의 `thread_ts` (또는 `message_ts`)를 전달한다.  
-이후 새 영상 알림이 이 스레드에 리플라이된다.
+Pass the current Slack message's `thread_ts` (or `message_ts`) as `slack_thread_ts`. New video notifications will be posted as replies to that thread.
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=subscribe" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
-  -d '{"channel_id":"<UC...>","channel_name":"<채널명>","channel_handle":"<@handle>","slack_thread_ts":"<thread_ts>"}'
+  --max-time 30 \
+  -d '{"channel_id":"<UC...>","channel_name":"<name>","channel_handle":"<@handle>","slack_thread_ts":"<thread_ts>"}'
 ```
 
-`channel_id`를 모르는 경우 `channel_handle`만 전달해도 됨 (자동 조회):
+If `channel_id` is unknown, provide `channel_handle` only (auto-resolved):
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=subscribe" \
@@ -82,9 +81,9 @@ curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=subscr
   -d '{"channel_handle":"@fireship","channel_name":"Fireship","slack_thread_ts":"<thread_ts>"}'
 ```
 
-**성공**: `status === "ok"` + `message` 필드 존재
+**Success**: `status === "ok"` + `message` field
 
-### 채널 모니터링 해제
+### Unsubscribe from Channel
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=unsubscribe" \
@@ -93,9 +92,9 @@ curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=unsubs
   -d '{"channel_id":"<UC...>"}'
 ```
 
-**성공**: `status === "ok"` + `message` 필드 존재
+**Success**: `status === "ok"` + `message` field
 
-### 모니터링 목록 조회
+### List Monitored Channels
 
 ```bash
 curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=list-subscriptions" \
@@ -104,25 +103,27 @@ curl -s -X POST "${N8N_WEBHOOK_BASE_URL}?type=youtube&mode=channel&action=list-s
   -d '{}'
 ```
 
-**성공**: `status === "ok"` + `channels` 배열 (또는 빈 목록 메시지)
+**Success**: `status === "ok"` + `channels` array (or empty list message)
 
 ---
 
 ## Response Handling
 
-**성공**: `status === "ok"` → 결과 필드 출력  
-**실패**: `status !== "ok"` → 실패 안내. `message` 필드가 있으면 포함.
+Parse the curl output as JSON.
+
+**Success** (`status === "ok"`): Present the result fields to the user.  
+**Failure** (`status !== "ok"`, non-JSON, or empty output): Inform the user that the request failed. Include the `message` field if present, otherwise describe the issue briefly.
 
 ---
 
 ## Agent Behavior
 
-- **채널 검색 후 모니터링 등록**: 검색 결과를 사용자에게 보여준 뒤, 사용자가 특정 채널을 지정하면 subscribe 호출
-- **subscribe 시 slack_thread_ts**: 반드시 현재 메시지의 `thread_ts` 또는 `message_ts`를 그대로 전달
-- **새 영상 알림**: 등록된 채널에 새 영상이 올라오면 매일 09:30 KST에 자동으로 이 스레드에 알림이 온다고 안내
+- **Channel search then subscribe**: Show search results first; call subscribe only after the user selects a specific channel.
+- **`slack_thread_ts` on subscribe**: Always pass the current message's `thread_ts` or `message_ts` exactly as received.
+- **New video notifications**: Tell the user that new videos from subscribed channels will be notified automatically at 09:30 KST daily, posted as a reply in this thread.
 
 ---
 
 ## Language
 
-항상 한국어로 응답한다.
+Respond in the same language the user used.
