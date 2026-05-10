@@ -22,6 +22,7 @@ All containers share an external Docker network named `proxy-net`.
 | `data/openclaw/openclaw.json` | Rendered OpenClaw config (gitignored, auto-generated) |
 | `prompts/openclaw/SOUL.md` | OpenClaw agent system prompt |
 | `prompts/openclaw/skills/*/SKILL.md` | OpenClaw skill definitions |
+| `n8n/workflows/my-ai-agent.js` | My-AI-Agent n8n workflow SDK source of truth |
 
 ## Environment Setup (Service)
 
@@ -76,6 +77,11 @@ Always call `get_node_types` before writing workflow code — do not guess param
 2. `update_workflow` — saves as **draft only**; the active version is not changed
 3. Test if feasible (`execute_workflow` or trigger via webhook)
 4. `publish_workflow` — **always required** to activate; never skip this step
+
+**My-AI-Agent workflow (`aKIZYBnzbB0ZpTMC`) modification rule**:
+- Always base changes on `n8n/workflows/my-ai-agent.js` (source of truth)
+- `update_workflow` replaces the entire workflow — any connection absent from the SDK code is permanently lost
+- Nodes with `onError: 'continueErrorOutput'` **must** have `.output(1).to(normalizeError)` declared as a side effect before `export default`; never omit these lines
 
 See `docs/` for detailed workflow guides and TIL notes.
 
