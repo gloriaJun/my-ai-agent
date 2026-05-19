@@ -84,25 +84,25 @@ Always include these in every webhook call body:
 # Minimum (date + time)
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # With type
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # With room and duration
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":"2","duration":60,"thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # With recurring
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","is_recurring":true,"thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
@@ -155,13 +155,13 @@ If `skipped` is absent or empty, omit the "스킵된 날짜" section entirely. F
 # All reservations
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=list" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # Filter by date
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=list" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"date":"YYYY-MM-DD","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
@@ -204,13 +204,13 @@ If the user does not provide an ID, call `action=list` first to retrieve reserva
 # 단일 취소
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=delete" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"ids":[3],"channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
 # 복수 취소
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=delete" \
   -H "Content-Type: application/json" \
-  --max-time 15 \
+  --max-time 30 \
   -d '{"ids":[8,9,12],"channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
