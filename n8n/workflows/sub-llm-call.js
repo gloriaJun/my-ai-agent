@@ -1,6 +1,6 @@
 // Workflow ID: EfSRIKhn13Bsybm0 (Sub-LLM-Call)
 // Provider-agnostic LLM sub-workflow. Returns { text }.
-// Uses Gemini 2.5 Flash with retry (5 tries, 3-min wait).
+// Uses Gemini 2.5 Flash with retry (3 tries, 10-min wait).
 import { workflow, node, trigger } from '@n8n/workflow-sdk';
 
 const whenCalled = trigger({
@@ -23,8 +23,8 @@ const callLlmApi = node({
     name: 'Call LLM API',
     position: [224, 0],
     retryOnFail: true,
-    maxTries: 5,
-    waitBetweenTries: 180000,
+    maxTries: 3,
+    waitBetweenTries: 600000,
     parameters: {
       method: 'POST',
       url: '=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}',
