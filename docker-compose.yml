@@ -47,6 +47,7 @@ services:
     volumes:
       - ./data/n8n:/home/node/.n8n
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./automations/tworld:/home/ubuntu/my-ai-agent/automations/tworld:ro
       # - ~/Documents/GitHubPrivate:/workspace
       # - ~/Documents/GitHubPrivate/my-ai-agent:/workspace/my-ai-agent:ro
     deploy:
