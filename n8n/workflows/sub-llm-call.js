@@ -1,6 +1,9 @@
 // Workflow ID: EfSRIKhn13Bsybm0 (Sub-LLM-Call)
 // Provider-agnostic LLM sub-workflow. Returns { text }.
-// Uses Gemini 2.5 Flash with retry (3 tries, 10-min wait).
+// Calls the OpenClaw gateway (OpenAI-compatible /v1/chat/completions).
+// Agent route via body model ($env.LLM_AGENT || "openclaw/default");
+// backend model via x-openclaw-model header ($json.model || $env.LLM_MODEL).
+// Retry 3 tries, 10-min wait.
 import { workflow, node, trigger } from '@n8n/workflow-sdk';
 
 const whenCalled = trigger({
@@ -27,12 +30,20 @@ const callLlmApi = node({
     waitBetweenTries: 600000,
     parameters: {
       method: 'POST',
-      url: '=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}',
+      url: 'http://openclaw:18789/v1/chat/completions',
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          { name: 'Authorization', value: '=Bearer {{ $env.OPENCLAW_GATEWAY_TOKEN }}' },
+          { name: 'x-openclaw-model', value: '={{ $json.model || $env.LLM_MODEL }}' },
+        ],
+      },
       sendBody: true,
       contentType: 'json',
       specifyBody: 'json',
       jsonBody:
-        '={{ { "contents": [{ "parts": [...($json.videoUrl ? [{ "fileData": { "mimeType": "video/*", "fileUri": $json.videoUrl } }] : []), { "text": $json.prompt }] }], "generationConfig": { "temperature": $json.temperature || 0.3, "maxOutputTokens": $json.maxTokens || 16000 } } }}',
+        '={{ { "model": $env.LLM_AGENT || "openclaw/default", "messages": [{ "role": "user", "content": $json.prompt }], "temperature": $json.temperature || 0.3, "max_tokens": $json.maxTokens || 16000 } }}',
       options: {
         timeout: 60000,
       },
@@ -49,7 +60,7 @@ const extractText = node({
     position: [448, 0],
     parameters: {
       mode: 'runOnceForEachItem',
-      jsCode: 'const text = $json.candidates?.[0]?.content?.parts?.[0]?.text;\nif (!text) throw new Error("no text from LLM: " + JSON.stringify($json).substring(0, 200));\nreturn { text };',
+      jsCode: 'const text = $json.choices?.[0]?.message?.content;\nif (!text) throw new Error("no text from LLM: " + JSON.stringify($json).substring(0, 200));\nreturn { text };',
     },
   },
   output: [{ text: '' }],

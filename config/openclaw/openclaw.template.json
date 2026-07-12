@@ -10,8 +10,6 @@
         "reserveTokensFloor": 20000
       },
       "models": {
-        "google/gemini-2.5-flash": {},
-        "google/gemini-2.5-flash-lite": {},
         "openai/gpt-4o-mini": {},
         "openai/gpt-4o": {},
         "openai-codex/gpt-5.4-mini": {},
@@ -69,21 +67,6 @@
   "models": {
     "mode": "replace",
     "providers": {
-      "google": {
-        "baseUrl": "https://generativelanguage.googleapis.com",
-        "api": "google-generative-ai",
-        "apiKey": "GEMINI_API_KEY",
-        "models": [
-          {
-            "id": "gemini-2.5-flash",
-            "name": "gemini-2.5-flash"
-          },
-          {
-            "id": "gemini-2.5-flash-lite",
-            "name": "gemini-2.5-flash-lite"
-          }
-        ]
-      },
       "openai": {
         "baseUrl": "https://api.openai.com",
         "api": "openai",
@@ -156,7 +139,7 @@
   "plugins": {
     "entries": {
       "google": {
-        "enabled": true
+        "enabled": false
       }
     }
   }
