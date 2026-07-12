@@ -12,8 +12,8 @@
       "models": {
         "openai/gpt-4o-mini": {},
         "openai/gpt-4o": {},
-        "openai-codex/gpt-5.4-mini": {},
-        "openai-codex/gpt-5.5": {}
+        "codex/gpt-5.4-mini": {},
+        "codex/gpt-5.5": {}
       }
     }
   },
