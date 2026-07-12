@@ -25,6 +25,11 @@
     },
     "port": 18789,
     "bind": "lan",
+    "http": {
+      "endpoints": {
+        "chatCompletions": { "enabled": true }
+      }
+    },
     "controlUi": {
       "enabled": true,
       "basePath": "/openclaw/",
