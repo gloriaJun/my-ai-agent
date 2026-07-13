@@ -45,7 +45,7 @@ const callLlmApi = node({
       jsonBody:
         '={{ { "model": $env.LLM_AGENT || "openclaw/default", "messages": [{ "role": "user", "content": $json.prompt }], "temperature": $json.temperature || 0.3, "max_tokens": $json.maxTokens || 16000 } }}',
       options: {
-        timeout: 60000,
+        timeout: 180000,
       },
     },
   },
