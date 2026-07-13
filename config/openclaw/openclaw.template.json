@@ -140,6 +140,9 @@
     "entries": {
       "google": {
         "enabled": false
+      },
+      "codex": {
+        "enabled": true
       }
     }
   }
