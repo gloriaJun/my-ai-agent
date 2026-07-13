@@ -2,6 +2,7 @@
   "agents": {
     "defaults": {
       "workspace": "/home/node/.openclaw/workspace",
+      "thinkingDefault": "off",
       "model": {
         "primary": "${LLM_PRIMARY_MODEL}",
         "fallbacks": ["${LLM_FALLBACK_MODEL}"]
@@ -137,11 +138,15 @@
     }
   },
   "plugins": {
+    "allow": ["slack"],
     "entries": {
       "google": {
         "enabled": false
       },
       "codex": {
+        "enabled": true
+      },
+      "slack": {
         "enabled": true
       }
     }
