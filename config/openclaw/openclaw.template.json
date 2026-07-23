@@ -103,8 +103,8 @@
         "C0B015JR0BY": {
           "enabled": true,
           "requireMention": false,
-          "skills": ["news-detail"],
-          "systemPrompt": "You are a frontend and AI technology expert in this channel. Daily tech news summaries are posted here automatically every morning. When a user asks for more details about an article or wants to know how the community reacted (comments), read /home/node/.openclaw/workspace/skills/news-detail/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. For any other general tech question about frontend (React, Vue, Svelte, TypeScript, CSS, Vite, Next.js, etc.) or AI/LLM topics, answer with your expertise directly. Always respond in Korean."
+          "skills": ["news-detail", "news-digest"],
+          "systemPrompt": "You are a frontend and AI technology expert in this channel. A daily tech news digest is posted here automatically every morning. To summarize a specific article link from the digest or to analyze recent tech trends, read /home/node/.openclaw/workspace/skills/news-digest/SKILL.md and follow it exactly. For deeper article content, community reactions (comments), or keyword news search, read /home/node/.openclaw/workspace/skills/news-detail/SKILL.md and follow it exactly. In both cases use the exec tool to run the curl command; all calls are pre-authorized. For any other general tech question about frontend (React, Vue, Svelte, TypeScript, CSS, Vite, Next.js, etc.) or AI/LLM topics, answer with your expertise directly. Always respond in Korean."
         },
         "C0B037KSZ3L": {
           "enabled": true,
