@@ -38,7 +38,7 @@ const fetchHackerNews = node({
   version: 4.2,
   config: {
     name: "Fetch HackerNews",
-    parameters: {"url":"https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=50","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},
+    parameters: {"url":"https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=points%3E%3D10&hitsPerPage=15","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},
     position: [224,192]
   },
   output: [{ data: '<raw feed text>' }]
@@ -49,7 +49,7 @@ const parseHackerNews = node({
   version: 2,
   config: {
     name: "Parse HackerNews",
-    parameters: { jsCode: "const SOURCE=\"HackerNews\";if(items[0]&&items[0].json.error){return[{json:{_fetchError:true,source:SOURCE,message:String(items[0].json.error)}}];}const data=items[0]&&items[0].json.data;if(!data){return[{json:{_fetchError:true,source:SOURCE,message:\"empty response\"}}];}let parsed;try{parsed=JSON.parse(data);}catch(e){return[{json:{_fetchError:true,source:SOURCE,message:\"JSON parse: \"+e.message}}];}const hits=(parsed.hits||[]).filter(function(h){return(h.points||0)>=10;}).slice(0,15);if(hits.length===0){return[{json:{_fetchError:true,source:SOURCE,message:\"points>=10 기사 없음\"}}];}return hits.map(function(h){return{json:{title:h.title||\"\",url:h.url||(\"https://news.ycombinator.com/item?id=\"+h.objectID),source:SOURCE,date:h.created_at||\"\",snippet:(h.story_text||\"\").substring(0,300),points:h.points||0}};});" },
+    parameters: { jsCode: "const SOURCE=\"HackerNews\";if(items[0]&&items[0].json.error){return[{json:{_fetchError:true,source:SOURCE,message:String(items[0].json.error)}}];}const data=items[0]&&items[0].json.data;if(!data){return[{json:{_fetchError:true,source:SOURCE,message:\"empty response\"}}];}let parsed;try{parsed=JSON.parse(data);}catch(e){return[{json:{_fetchError:true,source:SOURCE,message:\"JSON parse: \"+e.message}}];}const hits=(parsed.hits||[]).filter(function(h){return(h.points||0)>=10;}).slice(0,15);if(hits.length===0){return[{json:{_sourceEmpty:true,source:SOURCE,message:\"조건 충족 기사 없음(points>=10)\"}}];}return hits.map(function(h){return{json:{title:h.title||\"\",url:h.url||(\"https://news.ycombinator.com/item?id=\"+h.objectID),source:SOURCE,date:h.created_at||\"\",snippet:(h.story_text||\"\").substring(0,300),points:h.points||0}};});" },
     position: [448,192]
   },
   output: [{ source: 'X', title: 'T', url: 'https://example.com', snippet: '', date: '2026-07-21T00:00:00.000Z' }]
@@ -298,7 +298,7 @@ const filterDedup = node({
   version: 2,
   config: {
     name: 'Filter & Deduplicate',
-    parameters: { jsCode: "const KEYWORDS=['ai','llm','gpt','claude','gemini','openai','anthropic','deepmind','machine learning','deep learning','neural','diffusion','multimodal','agent','mcp','rag','reasoning','copilot','cursor','react','vue','svelte','angular','next.js','nextjs','nuxt','remix','astro','tanstack','solid','typescript','javascript','bun','deno','node.js','nodejs','rust','python','go','css','tailwind','shadcn','frontend','web components','vite','webpack','turbopack','esbuild','webassembly','wasm','browser','v8','vercel','netlify','cloudflare','프론트','인공지능','리액트','타입스크립트','에이전트','프론트엔드'];const fetchErrors=items.filter(function(i){return i.json._fetchError===true;}).map(function(i){return{source:i.json.source,message:i.json.message};});const normalItems=items.filter(function(i){return i.json._fetchError!==true;});const seen=new Set();const filtered=[];for(const item of normalItems){const title=(item.json.title||'').toLowerCase();const url=item.json.url||'';if(!url||seen.has(url))continue;if(!KEYWORDS.some(function(kw){return title.includes(kw);}))continue;seen.add(url);filtered.push(item);if(filtered.length>=60)break;}if(filtered.length===0){return [{json:{title:'',url:'',source:'',date:'',snippet:'',_fetchErrors:fetchErrors}}];}filtered[0]=Object.assign({},filtered[0],{json:Object.assign({},filtered[0].json,{_fetchErrors:fetchErrors})});return filtered;" },
+    parameters: { jsCode: "const KEYWORDS=['ai','llm','gpt','claude','gemini','openai','anthropic','deepmind','machine learning','deep learning','neural','diffusion','multimodal','agent','mcp','rag','reasoning','copilot','cursor','react','vue','svelte','angular','next.js','nextjs','nuxt','remix','astro','tanstack','solid','typescript','javascript','bun','deno','node.js','nodejs','rust','python','go','css','tailwind','shadcn','frontend','web components','vite','webpack','turbopack','esbuild','webassembly','wasm','browser','v8','vercel','netlify','cloudflare','프론트','인공지능','리액트','타입스크립트','에이전트','프론트엔드'];const fetchErrors=items.filter(function(i){return i.json._fetchError===true;}).map(function(i){return{source:i.json.source,message:i.json.message};});const emptySources=items.filter(function(i){return i.json._sourceEmpty===true;}).map(function(i){return{source:i.json.source,message:i.json.message};});const normalItems=items.filter(function(i){return i.json._fetchError!==true&&i.json._sourceEmpty!==true;});const seen=new Set();const filtered=[];for(const item of normalItems){const title=(item.json.title||'').toLowerCase();const url=item.json.url||'';if(!url||seen.has(url))continue;if(!KEYWORDS.some(function(kw){return title.includes(kw);}))continue;seen.add(url);filtered.push(item);if(filtered.length>=60)break;}if(filtered.length===0){return [{json:{title:'',url:'',source:'',date:'',snippet:'',_fetchErrors:fetchErrors,_emptySources:emptySources}}];}filtered[0]=Object.assign({},filtered[0],{json:Object.assign({},filtered[0].json,{_fetchErrors:fetchErrors,_emptySources:emptySources})});return filtered;" },
     position: [1120,1920]
   },
   output: [{ source: 'X', title: 'T', url: 'https://example.com', snippet: '', date: '2026-07-21T00:00:00.000Z' }]
@@ -320,10 +320,10 @@ const buildIngestBatch = node({
   version: 2,
   config: {
     name: 'Build Ingest Batch',
-    parameters: { mode: 'runOnceForAllItems', jsCode: "const SLUG_MAP = {\n  \"GeekNews\": \"geeknews\",\n  \"HackerNews\": \"hacker-news\",\n  \"dev.to/javascript\": \"dev-to-javascript\",\n  \"dev.to/react\": \"dev-to-react\",\n  \"web.dev\": \"web-dev\",\n  \"SmashingMagazine\": \"smashing-magazine\",\n  \"Lobsters\": \"lobsters\",\n  \"CSS-Tricks\": \"css-tricks\",\n  \"ByteByteGo\": \"bytebytego\",\n  \"Next.js Blog\": \"nextjs-blog\"\n};\nconst TRACKING = new Set([\"ref\", \"fbclid\", \"gclid\", \"mc_cid\", \"mc_eid\", \"igshid\", \"spm\"]);\nfunction canonicalUrl(raw) {\n  try {\n    const u = new URL(raw);\n    u.protocol = \"https:\";\n    u.hash = \"\";\n    u.hostname = u.hostname.replace(/^www\\./, \"\");\n    for (const k of [...u.searchParams.keys()]) {\n      if (/^utm_/i.test(k) || TRACKING.has(k.toLowerCase())) u.searchParams.delete(k);\n    }\n    let s = u.toString();\n    if (s.endsWith(\"/\") && u.pathname !== \"/\") s = s.slice(0, -1);\n    return s;\n  } catch (e) {\n    return raw;\n  }\n}\nconst src = (items[0] && items[0].json && items[0].json.articles) ? items[0].json.articles : [];\nconst skipped = {};\nconst seen = new Set();\nconst articles = [];\nfor (const a of src) {\n  if (!a || !a.url || !a.title) continue;\n  const slug = SLUG_MAP[a.source];\n  if (!slug) { const key = a.source || \"unknown\"; skipped[key] = (skipped[key] || 0) + 1; continue; }\n  const url = canonicalUrl(a.url);\n  if (seen.has(url)) continue;\n  seen.add(url);\n  const d = a.date ? new Date(a.date) : null;\n  const publishedAt = (d && !isNaN(d.getTime())) ? d.toISOString() : new Date().toISOString();\n  const snippet = (a.snippet == null) ? \"\" : String(a.snippet).trim();\n  const content = snippet.length > 0 ? snippet.slice(0, 200000) : a.title;\n  articles.push({ sourceSlug: slug, url: url, title: a.title, content: content, publishedAt: publishedAt });\n}\nconst kst = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);\nconst batchId = \"daily-tech-\" + kst;\nreturn [{ json: { batchId: batchId, articles: articles, _count: articles.length, _skipped: skipped } }];" },
+    parameters: { mode: 'runOnceForAllItems', jsCode: "const SLUG_MAP = {\n  \"GeekNews\": \"geeknews\",\n  \"HackerNews\": \"hacker-news\",\n  \"dev.to/javascript\": \"dev-to-javascript\",\n  \"dev.to/typescript\": \"dev-to-typescript\",\n  \"dev.to/react\": \"dev-to-react\",\n  \"dev.to/ai\": \"dev-to-ai\",\n  \"web.dev\": \"web-dev\",\n  \"SmashingMagazine\": \"smashing-magazine\",\n  \"Lobsters\": \"lobsters\",\n  \"CSS-Tricks\": \"css-tricks\",\n  \"ByteByteGo\": \"bytebytego\",\n  \"Next.js Blog\": \"nextjs-blog\"\n};\nconst TRACKING = new Set([\"ref\", \"fbclid\", \"gclid\", \"mc_cid\", \"mc_eid\", \"igshid\", \"spm\"]);\nfunction canonicalUrl(raw) {\n  try {\n    const u = new URL(raw);\n    u.protocol = \"https:\";\n    u.hash = \"\";\n    u.hostname = u.hostname.replace(/^www\\./, \"\");\n    for (const k of [...u.searchParams.keys()]) {\n      if (/^utm_/i.test(k) || TRACKING.has(k.toLowerCase())) u.searchParams.delete(k);\n    }\n    let s = u.toString();\n    if (s.endsWith(\"/\") && u.pathname !== \"/\") s = s.slice(0, -1);\n    return s;\n  } catch (e) {\n    return raw;\n  }\n}\nconst src = (items[0] && items[0].json && items[0].json.articles) ? items[0].json.articles : [];\nconst meta = src[0] || {};\nconst fetchErrors = Array.isArray(meta._fetchErrors) ? meta._fetchErrors : [];\nconst emptySources = Array.isArray(meta._emptySources) ? meta._emptySources : [];\nconst skipped = {};\nconst seen = new Set();\nconst articles = [];\nfor (const a of src) {\n  if (!a || !a.url || !a.title) continue;\n  const slug = SLUG_MAP[a.source];\n  if (!slug) { const key = a.source || \"unknown\"; skipped[key] = (skipped[key] || 0) + 1; continue; }\n  const url = canonicalUrl(a.url);\n  if (seen.has(url)) continue;\n  seen.add(url);\n  const d = a.date ? new Date(a.date) : null;\n  const publishedAt = (d && !isNaN(d.getTime())) ? d.toISOString() : new Date().toISOString();\n  const snippet = (a.snippet == null) ? \"\" : String(a.snippet).trim();\n  const content = snippet.length > 0 ? snippet.slice(0, 200000) : a.title;\n  articles.push({ sourceSlug: slug, url: url, title: a.title, content: content, publishedAt: publishedAt });\n}\nconst kst = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);\nconst batchId = \"daily-tech-\" + kst;\nreturn [{ json: { batchId: batchId, articles: articles, _count: articles.length, _skipped: skipped, _fetchErrors: fetchErrors, _emptySources: emptySources } }];" },
     position: [1568, 1920]
   },
-  output: [{ batchId: 'daily-tech-2026-07-21', articles: [], _count: 0, _skipped: {} }]
+  output: [{ batchId: 'daily-tech-2026-07-21', articles: [], _count: 0, _skipped: {}, _fetchErrors: [], _emptySources: [] }]
 });
 
 const hasArticles = ifElse({
@@ -426,6 +426,40 @@ const sendErrorAlert = node({
   output: [{}]
 });
 
+// source health: fetch failures / empty sources / unmapped slugs are warnings, not run failures.
+// Build Source Health Alert returns no items when everything is clean, which skips the Slack send.
+const buildSourceHealthAlert = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Build Source Health Alert',
+    parameters: { mode: 'runOnceForAllItems', jsCode: "const j = (items[0] && items[0].json) ? items[0].json : {};\nconst fetchErrors = Array.isArray(j._fetchErrors) ? j._fetchErrors : [];\nconst emptySources = Array.isArray(j._emptySources) ? j._emptySources : [];\nconst skipped = (j._skipped && typeof j._skipped === 'object') ? j._skipped : {};\nconst count = (typeof j._count === 'number') ? j._count : 0;\nconst lines = [];\nif (count === 0) lines.push('• 수집 0건 - ingest 미전송');\nfor (const e of fetchErrors) lines.push('• 수집 실패 ' + e.source + ': ' + e.message);\nfor (const e of emptySources) lines.push('• 빈 결과 ' + e.source + ': ' + e.message);\nfor (const k of Object.keys(skipped)) lines.push('• 슬러그 미등록 제외 ' + k + ' (' + skipped[k] + '건)');\nif (lines.length === 0) return [];\nconst nl = String.fromCharCode(10);\nreturn [{ json: { text: '⚠️ Daily Tech News 소스 점검' + (j.batchId ? ' (' + j.batchId + ')' : '') + nl + lines.join(nl) } }];" },
+    position: [1792, 2400]
+  },
+  output: [{ text: '' }]
+});
+
+const sendSourceHealthAlert = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.4,
+  config: {
+    name: 'Send Source Health Alert',
+    parameters: {
+      method: 'POST',
+      url: 'https://slack.com/api/chat.postMessage',
+      sendHeaders: true,
+      headerParameters: { parameters: [{ name: 'Authorization', value: expr('=Bearer {{ $env.SLACK_BOT_TOKEN }}') }] },
+      sendBody: true,
+      contentType: 'json',
+      specifyBody: 'json',
+      jsonBody: expr('={{ JSON.stringify({ channel: "C0B0XQP5CF2", text: $json.text }) }}'),
+      options: { timeout: 15000 }
+    },
+    position: [2016, 2400]
+  },
+  output: [{}]
+});
+
 // error path side effects: ingest failures -> alert channel C0B0XQP5CF2
 postIngest.output(1).to(buildErrorAlert);
 postIngestComplete.output(1).to(buildErrorAlert);
@@ -463,5 +497,7 @@ export default workflow('tFyzxMcFUCjpaAzq', 'Daily Tech News Summary')
   .to(buildIngestBatch)
   .to(hasArticles
     .onTrue(postIngest.to(postIngestComplete)))
+  .add(buildIngestBatch)
+  .to(buildSourceHealthAlert.to(sendSourceHealthAlert))
   .add(buildErrorAlert)
   .to(sendErrorAlert);
