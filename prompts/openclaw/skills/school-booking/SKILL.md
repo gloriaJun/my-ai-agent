@@ -53,6 +53,7 @@ If `date` or `time` is missing, ask the user before proceeding.
 | Duration | duration     | 30 / 60 / 90 / 120 (minutes)  | omit               |
 | Room     | room         | string (e.g. `"2"`)           | omit               |
 | Recurring| is_recurring | true / false                  | false              |
+| Count    | recurring_count | integer, 1-12              | 4, only if is_recurring is true |
 
 ### Auto-included fields
 
@@ -65,8 +66,11 @@ Always include these in every webhook call body:
 | Message TS | message_ts   | `message_id` from the current message runtime context |
 
 **IMPORTANT:**
+- No mention of repetition means exactly one reservation: leave `is_recurring` false and omit `recurring_count`. The count has no effect unless `is_recurring` is true.
 - Never ask for `room` or `is_recurring` — room is assigned automatically by the backend.
 - `is_recurring` defaults to false unless the user explicitly says "매주", "반복" or similar.
+- When `is_recurring` is true, read the count from the request ("8회" / "8주" / "8번" → `recurring_count: 8`) and send it. A count above 12 is rejected by the backend, so ask for a number in 1-12 instead of sending it.
+- When `is_recurring` is true but no number was given, omit `recurring_count`. The backend then creates 4 reservations, so the reply must say 기본 4건 rather than implying the series continues indefinitely.
 - "레슨실" → `type: lesson`, "연습실" → `type: practice`. Never put facility name in `room`.
 - Always include `thread_id`, `channel_id`, and `message_ts` in every webhook call.
 - As soon as `date` and `time` are known, call the webhook immediately.
@@ -99,11 +103,11 @@ curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   --max-time 30 \
   -d '{"date":"YYYY-MM-DD","time":"HH:MM","type":"lesson","room":"2","duration":60,"thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 
-# With recurring
+# With recurring (8 reservations, including the first)
 curl -X POST "${N8N_WEBHOOK_BASE_URL}?type=booking&mode=school&action=add" \
   -H "Content-Type: application/json" \
   --max-time 30 \
-  -d '{"date":"YYYY-MM-DD","time":"HH:MM","is_recurring":true,"thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
+  -d '{"date":"YYYY-MM-DD","time":"HH:MM","is_recurring":true,"recurring_count":8,"thread_id":"<slack_thread_ts>","channel_id":"<CHANNEL_ID>","message_ts":"<MESSAGE_TS>"}'
 ```
 
 **Success**: `status === "ok"` AND `reservations` array is non-empty.
