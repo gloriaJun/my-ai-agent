@@ -43,12 +43,13 @@ my-ai-agent/
 N8N_HOST=0.0.0.0
 N8N_PATH=/
 N8N_ENCRYPTION_KEY=<random_key>
-WEBHOOK_URL=https://<domain>/
+WEBHOOK_URL=https://n8n.gloriajun.duckdns.org/
 GENERIC_TIMEZONE=Asia/Seoul
 N8N_WEBHOOK_BASE_URL=http://n8n:5678/webhook/my-ai-agent
 
 # OpenClaw
-OPENCLAW_BASE_PATH=/openclaw/
+BASE_PATH=/
+PUBLIC_URL=https://gloriajun.duckdns.org
 OPENCLAW_GATEWAY_TOKEN=<token>
 
 # Slack (시크릿만 .env 관리; 채널 ID는 openclaw.template.json에 직접 기입)

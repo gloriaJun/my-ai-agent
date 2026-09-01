@@ -33,8 +33,8 @@
     },
     "controlUi": {
       "enabled": true,
-      "basePath": "/openclaw/",
-      "allowedOrigins": ["*", "https://gloriajun.duckdns.org"],
+      "basePath": "/",
+      "allowedOrigins": ["https://gloriajun.duckdns.org"],
       "allowInsecureAuth": true
     },
     "nodes": {
@@ -91,7 +91,7 @@
       "mode": "http",
       "botToken": "${SLACK_BOT_TOKEN}",
       "signingSecret": "${SLACK_SIGNING_SECRET}",
-      "webhookPath": "/openclaw/slack/events",
+      "webhookPath": "/slack/events",
       "replyToMode": "all",
       "channels": {
         "C0B06QW9MQU": {

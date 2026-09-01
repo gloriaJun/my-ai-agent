@@ -34,7 +34,7 @@ openclaw는 매 세션 시작 시 아래 파일을 순서대로 읽어 시스템
     "mode": "http",
     "botToken": "${SLACK_BOT_TOKEN}",
     "signingSecret": "${SLACK_SIGNING_SECRET}",
-    "webhookPath": "/openclaw/slack/events",
+    "webhookPath": "/slack/events",
     "replyToMode": "all",
     "channels": {
       "<CHANNEL_ID>": {

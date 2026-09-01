@@ -16,7 +16,7 @@ OpenClaw를 2026.4.x → 2026.6.11로 올리면서 선언적 config(템플릿)�
    ```bash
    docker exec openclaw openclaw channels add --channel slack --use-env
    ```
-   설치 후 재시작하면 `[slack] http mode listening at /openclaw/slack/events`가 뜨고 채널이 로드된다. 템플릿에는 신뢰/활성만 고정한다:
+   설치 후 재시작하면 `[slack] http mode listening at /slack/events`가 뜨고 채널이 로드된다. 템플릿에는 신뢰/활성만 고정한다:
    ```json
    "plugins": { "allow": ["slack"], "entries": { "slack": { "enabled": true } } }
    ```
