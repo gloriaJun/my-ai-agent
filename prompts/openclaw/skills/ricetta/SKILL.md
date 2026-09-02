@@ -116,6 +116,29 @@ Ask in the thread instead:
 - Confirm every recipe's summary before saving, one message listing all of them is
   fine. Save them one call at a time and report which succeeded.
 
+**Judge each recipe on its own.** Recipes arriving in one batch share nothing but
+the source: 카테고리 and 태그 come from that dish and its own steps, so decide them
+per recipe rather than copying the first one's answer across the batch. Equally,
+never leave a recipe's 카테고리 or 태그 empty just because the batch was long - a
+row saved with neither is indistinguishable from one nobody has looked at yet.
+Put every recipe's 카테고리·태그 in the confirmation summary so the user sees all of
+them side by side, and ask when a dish gives you no basis to decide.
+
+### 2c. Keep the link the user gave
+
+`/api/extract` fills `sourceUrl` by itself, but a manual save does not - and a link
+the user pasted in the thread is the only record of where the recipe came from.
+Never drop it.
+
+- **Saving one recipe**: put that link in `sourceUrl` even when `sourceType` is
+  `manual`. The detail screen then shows the source icon and the link.
+- **Saving several from one link**: `source_url` is unique, so only one row could
+  hold it and the rest would 409. Write the link into every recipe's `memo`
+  instead (`원본: <link>`) and leave `sourceUrl` out of all of them - one row
+  quietly owning the link while its siblings look source-less is worse than none.
+- The link counts whether it arrived with this message or earlier in the thread.
+  Images uploaded with no link at all are the only case with nothing to record.
+
 ### 3. Confirm in the thread
 
 Post 요리명 / 카테고리 / 태그 / 재료 / 조리법 as a readable summary and ask whether
