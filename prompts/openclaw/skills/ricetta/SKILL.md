@@ -35,7 +35,7 @@ so instead of retrying.
 
 | User intent | action |
 |---|---|
-| 인스타/유튜브 레시피 링크를 붙여넣음, 저장해줘, 넣어줘 | `register` |
+| 인스타/유튜브/네이버 블로그 레시피 링크를 붙여넣음, 저장해줘, 넣어줘 | `register` |
 | 재료를 나열하고 뭐 만들지 물어봄, "냉장고에 X 있어", 재료로 찾아줘 | `match` |
 
 A link plus ingredients in one message is a `register`. Ingredients with no link
@@ -65,7 +65,7 @@ them means the link cannot be read, not that the save failed:
 
 | code | HTTP | what to say |
 |---|---|---|
-| `INVALID_URL` | 400 | 인스타그램 게시물·릴 또는 유튜브 링크만 넣을 수 있다고 알린다 |
+| `INVALID_URL` | 400 | 인스타그램 게시물·릴, 유튜브 영상, 네이버 블로그 글 링크만 넣을 수 있다고 알린다 |
 | `OG_EMPTY` | 502 | 원본에서 내용을 못 가져왔다고 알리고, 캡션을 직접 붙여 달라고 한다 |
 | `API_KEY_MISSING` | 500 | 유튜브 API 키 설정 문제라고 알린다 |
 | `RATE_LIMITED` | 429 | 원본이 잠시 막았으니 몇 분 뒤 다시 하자고 한다 |
@@ -91,6 +91,11 @@ comes back a line or two long, `suggestions.ingredients` empty and
 `categoryScore` 0. Say that the post's text holds no recipe, ask the user to
 paste the text (or dictate it), and build the recipe from what they send. Never
 fill 재료 or 조리법 from the dish name, the account, or general knowledge.
+
+A naver post reaches the same place a second way: ricetta parses only
+SmartEditor ONE, so an old-editor post comes back HTTP 200 with an empty
+`captionRaw` and `warnings: ["OG_EMPTY"]`. Treat that warning as the case above,
+not as a failure - `title` and the photo did arrive, so only the text is missing.
 
 ### 2b. When one link holds several recipes
 
@@ -153,12 +158,19 @@ curl -s -X POST "${RICETTA_URL}/api/recipes" \
   -H "content-type: application/json" \
   -d '{"sourceType":"instagram","sourceUrl":"...","title":"...","categorySlug":"korean",
        "tags":["밀프렙"],"ingredients":[{"name":"계란","amount":2,"unit":"개"}],
-       "steps":"1. ...\n2. ...","captionRaw":"...","authorHandle":"...","postedAt":"..."}' \
+       "steps":"1. ...\n2. ...","captionRaw":"...","authorHandle":"...","postedAt":"...",
+       "mainPhoto":{"imageKey":"naver/someone-224309791509.jpg"}}' \
   --max-time 20
 ```
 
 - `sourceType`·`sourceUrl`·`captionRaw`·`authorHandle`·`postedAt`는 `draft`의 값을
   그대로 싣는다. 사람이 고칠 대상이 아니다.
+- **`mainPhoto` was missing until 2026-09-03, so every recipe saved from Slack
+  landed without a photo** - all three sources, not just naver. Send
+  `{"imageKey": draft.imageKey}` when the draft has one (instagram and naver
+  re-host their bytes), otherwise `{"imageUrl": draft.imageCandidates[0].url}`
+  (youtube hotlinks, and its first candidate is the uploader's own thumbnail).
+  Never send both fields, and send neither when the draft has no photo at all.
 - **`categorySlug` is optional and you only send it when there is evidence.** If
   `suggestions.categoryScore` is 0 the classifier matched no keyword at all, so
   omit the field: the recipe lands in `분류 없음`, which the web screen shows as a
