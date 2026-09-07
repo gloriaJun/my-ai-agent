@@ -44,6 +44,9 @@ services:
       N8N_PROXY_HOPS: 1
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       NODE_FUNCTION_ALLOW_BUILTIN: "*"
+      # executeCommand 는 v2.0부터 기본 비활성이다. openclaw-usage-alert 워크플로가 쓴다.
+      # 쓰지 않는 localFileTrigger 만 남겨 기본 차단을 유지한다.
+      NODES_EXCLUDE: '["n8n-nodes-base.localFileTrigger"]'
     volumes:
       - ./data/n8n:/home/node/.n8n
       - /var/run/docker.sock:/var/run/docker.sock
