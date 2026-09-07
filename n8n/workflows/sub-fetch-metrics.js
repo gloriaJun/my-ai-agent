@@ -1,274 +1,179 @@
 // Sub-Fetch-Metrics
-// 경제 브리핑 섹션 1용 지표를 2일치씩 모아 전일 대비까지 계산해 반환한다.
-// 반환: { metrics: [{ metric_code, label, as_of, value, delta, decimals, unit, source, status }],
-//         _count, _missing: [], _fetchErrors: [] }
-// delta는 절대값, delta_pct는 직전 관측 대비 변동률(%). 금리는 퍼센트 변동이 무의미해
-// 렌더 단계에서 unit === 'percent' 이면 bp(= delta * 100)로 표기한다.
+// 경제 브리핑 섹션 1용 지표를 여러 날치 모아 전 거래일 대비까지 계산해 반환한다.
+// 반환: { metrics: [{ metric_code, label, flag, as_of, value, delta, delta_pct,
+//                     prev_as_of, decimals, unit, source, status }],
+//         _count, _missing, _fetchErrors }
 //
-// PoC 단계라 인증키가 필요한 소스를 쓰지 않는다. 전부 키리스로 구성했다.
-// 대가: 환율이 매매기준율이 아니라 글로벌 시장가다(0.6% 내외 차이). 브리핑에는 소스명을
-// 병기해 오해를 막고, 필요해지면 아래 METRICS의 해당 항목만 ECOS로 바꾼다.
+// PoC 단계라 인증키가 필요한 소스를 쓰지 않는다.
+//   환율·지수 Yahoo / 미국 기준금리 FRED 키리스 CSV / 일본 BIS / 한국은 고정값
+// 한국 기준금리는 정확한 키리스 소스가 없다. FRED 시리즈는 콜금리·재할인율이고
+// BIS는 2026-08 인상을 반영하지 못한다. 정책금리는 연 8회만 바뀌므로 고정값이 더 정확하고,
+// 금통위 결정문은 sub-fetch-market-signals가 수집하는 한국은행 RSS에 뜬다.
+// 대가: 환율이 매매기준율이 아닌 글로벌 시장가다(0.5% 내외 차이).
 //
-// 새 워크플로라 아직 n8n ID가 없다. MCP 세션에서 create_workflow_from_code로 만든 뒤
-// 아래 workflow(...) 첫 인자를 실제 ID로 교체한다.
+// 이 파일은 SDK 파서가 읽는다. map/함수선언/헬퍼 같은 런타임 로직을 쓸 수 없어
+// 모든 노드를 리터럴로 펼쳐 둔다. 런타임 로직은 전부 code 노드 안에 있다.
+// 소스를 바꾸려면 해당 Fetch 노드의 url과 짝이 되는 Parse 노드의 META를 함께 고친다.
+//
+// 새 워크플로라 아직 n8n ID가 없다. 생성 후 workflow(...) 첫 인자를 실제 ID로 교체한다.
 import { workflow, node, trigger, merge } from '@n8n/workflow-sdk';
 
-const FRED_LOOKBACK_DAYS = 10;
-
-// kind 별 수집 방식
-//   yahoo : query2.finance.yahoo.com chart API. close 배열에 null이 실제로 섞인다
-//   fred  : fredgraph.csv 키리스 경로. 결측은 "." 문자열
-//   bis   : SDMX CSV. 본문에 콤마가 든 인용 필드가 있어 정규식으로 뽑는다
-//   fixed : 외부 호출 없이 고정값. 정책금리는 연 8회만 바뀌므로 이 편이 정확하다
-const METRICS = [
-  { code: 'FX_USDKRW', label: '원/달러 환율', unit: 'KRW', decimals: 1, flag: '🇺🇸',
-    kind: 'yahoo', symbol: 'KRW=X', source: 'YAHOO_FX' },
-  { code: 'FX_JPY100KRW', label: '원/100엔 환율', unit: 'KRW', decimals: 2, flag: '🇯🇵',
-    kind: 'yahoo', symbol: 'JPYKRW=X', multiplier: 100, source: 'YAHOO_FX' },
-  { code: 'RATE_KR_BASE', label: '한국 기준금리', unit: 'percent', decimals: 2, flag: '🇰🇷',
-    kind: 'fixed', value: 3.0, since: '2026-08-27', source: 'FIXED_BOK' },
-  { code: 'RATE_US_TARGET_UPPER', label: '미국 기준금리 상단', unit: 'percent', decimals: 2, flag: '🇺🇸',
-    kind: 'fred', series: 'DFEDTARU', source: 'FRED' },
-  { code: 'RATE_US_TARGET_LOWER', label: '미국 기준금리 하단', unit: 'percent', decimals: 2, flag: '🇺🇸',
-    kind: 'fred', series: 'DFEDTARL', source: 'FRED' },
-  { code: 'RATE_JP_POLICY', label: '일본 기준금리', unit: 'percent', decimals: 2, flag: '🇯🇵',
-    kind: 'bis', ref: 'D.JP', source: 'BIS' },
-  { code: 'IDX_KOSPI', label: 'KOSPI', unit: 'point', decimals: 2, flag: '🇰🇷',
-    kind: 'yahoo', symbol: '^KS11', source: 'YAHOO_IDX' },
-  { code: 'IDX_SP500', label: 'S&P500', unit: 'point', decimals: 2, flag: '🇺🇸',
-    kind: 'yahoo', symbol: '^GSPC', source: 'YAHOO_IDX' },
-  { code: 'IDX_NASDAQ', label: 'NASDAQ', unit: 'point', decimals: 2, flag: '🇺🇸',
-    kind: 'yahoo', symbol: '^IXIC', source: 'YAHOO_IDX' },
-];
-
-function urlFor(m) {
-  if (m.kind === 'yahoo') {
-    return 'https://query2.finance.yahoo.com/v8/finance/chart/' +
-      encodeURIComponent(m.symbol) + '?range=7d&interval=1d';
-  }
-  if (m.kind === 'fred') {
-    // cosd는 워크플로 실행 시점 기준으로 채운다. 표현식으로 넣어 과거 전체를 받지 않는다.
-    return '=https://fred.stlouisfed.org/graph/fredgraph.csv?id=' + m.series +
-      '&cosd={{ new Date(Date.now() - ' + FRED_LOOKBACK_DAYS + ' * 86400000).toISOString().slice(0, 10) }}';
-  }
-  if (m.kind === 'bis') {
-    return 'https://stats.bis.org/api/v1/data/WS_CBPOL/' + m.ref +
-      '/all?format=csv&lastNObservations=3';
-  }
-  return null;
-}
-
-// --- 파서 본문 ------------------------------------------------------------
-// 앞에서 const META = {...} 를 주입한다. 반환은 관측치 배열이며 delta는 뒷 노드가 계산한다.
-const PARSE_BODY = `
-function fail(message) {
-  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,
-                    decimals: META.decimals, flag: META.flag, source: META.source,
-                    status: 'error', message: message, observations: [] } }];
-}
-if (items[0] && items[0].json && items[0].json.error) {
-  return fail(String(items[0].json.error));
-}
-var raw = items[0] && items[0].json ? items[0].json.data : null;
-if (!raw) return fail('empty response');
-
-var observations = [];
-if (META.kind === 'yahoo') {
-  var parsed;
-  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }
-  catch (e) { return fail('JSON parse: ' + e.message); }
-  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;
-  if (!result) return fail('no chart result');
-  var stamps = result.timestamp || [];
-  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])
-    ? result.indicators.quote[0].close : [];
-  for (var i = 0; i < stamps.length; i++) {
-    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.
-    if (closes[i] === null || closes[i] === undefined) continue;
-    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });
-  }
-  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.
-  var live = result.meta ? result.meta.regularMarketPrice : null;
-  var liveTime = result.meta ? result.meta.regularMarketTime : null;
-  if (typeof live === 'number' && liveTime) {
-    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);
-    var last = observations[observations.length - 1];
-    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });
-    else if (last.as_of === liveDate) last.value = live;
-  }
-} else if (META.kind === 'fred') {
-  var lines = String(raw).split('\\n');
-  for (var k = 1; k < lines.length; k++) {
-    var cols = lines[k].trim().split(',');
-    if (cols.length < 2) continue;
-    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기
-    var n = Number(cols[1]);
-    if (isNaN(n)) continue;
-    observations.push({ as_of: cols[0], value: n });
-  }
-} else if (META.kind === 'bis') {
-  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.
-  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;
-  var m;
-  while ((m = re.exec(String(raw))) !== null) {
-    observations.push({ as_of: m[1], value: Number(m[2]) });
-  }
-} else {
-  return fail('unknown kind: ' + META.kind);
-}
-
-if (observations.length === 0) return fail('no observation parsed');
-observations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });
-if (typeof META.multiplier === 'number') {
-  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });
-}
-return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,
-                  decimals: META.decimals, flag: META.flag, source: META.source,
-                  status: 'ok', observations: observations.slice(-5) } }];
-`;
-
-const fetched = METRICS.filter((m) => m.kind !== 'fixed');
-
 const whenCalled = trigger({
-  type: 'n8n-nodes-base.executeWorkflowTrigger',
+  type: "n8n-nodes-base.executeWorkflowTrigger",
   version: 1.1,
-  config: {
-    name: 'When Called by Another Workflow',
-    position: [0, 800],
-    parameters: { inputSource: 'passthrough' },
-  },
-  output: [{}],
+  config: {"name":"When Called by Another Workflow","position":[0,800],"parameters":{"inputSource":"passthrough"}},
+  output: [{}]
 });
 
-const fetchNodes = fetched.map((m, i) =>
-  node({
-    type: 'n8n-nodes-base.httpRequest',
-    version: 4.2,
-    config: {
-      name: 'Fetch ' + m.code,
-      onError: 'continueRegularOutput',
-      parameters: {
-        url: urlFor(m),
-        options: { response: { response: { responseFormat: 'text' } }, timeout: 15000 },
-      },
-      position: [224, i * 180],
-    },
-    output: [{ data: '<raw payload>' }],
-  })
-);
+const fetch0 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch FX_USDKRW","onError":"continueRegularOutput","parameters":{"url":"https://query2.finance.yahoo.com/v8/finance/chart/KRW%3DX?range=7d&interval=1d","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,0]},
+  output: [{ data: '<raw payload>' }]
+});
 
-const parseNodes = fetched.map((m, i) =>
-  node({
-    type: 'n8n-nodes-base.code',
-    version: 2,
-    config: {
-      name: 'Parse ' + m.code,
-      parameters: {
-        mode: 'runOnceForAllItems',
-        jsCode: 'const META = ' + JSON.stringify({
-          code: m.code, label: m.label, unit: m.unit, decimals: m.decimals,
-          flag: m.flag, kind: m.kind, source: m.source, multiplier: m.multiplier,
-        }) + ';' + PARSE_BODY,
-      },
-      position: [448, i * 180],
-    },
-    output: [{ metric_code: '', observations: [] }],
-  })
-);
-
-const fixedMetrics = METRICS.filter((m) => m.kind === 'fixed');
-const emitFixed = node({
-  type: 'n8n-nodes-base.code',
+const parse0 = node({
+  type: "n8n-nodes-base.code",
   version: 2,
-  config: {
-    name: 'Emit Fixed Metrics',
-    parameters: {
-      mode: 'runOnceForAllItems',
-      jsCode:
-        'const FIXED = ' + JSON.stringify(fixedMetrics.map((m) => ({
-          metric_code: m.code, label: m.label, unit: m.unit, decimals: m.decimals,
-          flag: m.flag, source: m.source, value: m.value, since: m.since,
-        }))) + ';\n' +
-        // 고정값은 관측일 개념이 없다. 오늘과 어제 같은 값을 넣어 delta가 0으로 나오게 한다.
-        // 값이 바뀌면 한국은행 보도자료 RSS(sub-fetch-market-signals)에 결정문이 뜬다.
-        'const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);\n' +
-        'const prev = new Date(Date.now() + 9 * 3600 * 1000 - 86400000).toISOString().slice(0, 10);\n' +
-        'return FIXED.map(function (f) {\n' +
-        '  return { json: { metric_code: f.metric_code, label: f.label, unit: f.unit,\n' +
-        '    decimals: f.decimals, flag: f.flag, source: f.source, status: "ok", since: f.since,\n' +
-        '    observations: [{ as_of: prev, value: f.value }, { as_of: today, value: f.value }] } };\n' +
-        '});',
-    },
-    position: [448, fetched.length * 180],
-  },
-  output: [{ metric_code: '', observations: [] }],
+  config: {"name":"Parse FX_USDKRW","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"FX_USDKRW\",\"label\":\"원/달러 환율\",\"unit\":\"KRW\",\"decimals\":1,\"flag\":\"🇺🇸\",\"kind\":\"yahoo\",\"source\":\"YAHOO_FX\"};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,0]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const fetch1 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch FX_JPY100KRW","onError":"continueRegularOutput","parameters":{"url":"https://query2.finance.yahoo.com/v8/finance/chart/JPYKRW%3DX?range=7d&interval=1d","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,180]},
+  output: [{ data: '<raw payload>' }]
+});
+
+const parse1 = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Parse FX_JPY100KRW","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"FX_JPY100KRW\",\"label\":\"원/100엔 환율\",\"unit\":\"KRW\",\"decimals\":2,\"flag\":\"🇯🇵\",\"kind\":\"yahoo\",\"source\":\"YAHOO_FX\",\"multiplier\":100};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,180]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const fetch2 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch RATE_US_TARGET_UPPER","onError":"continueRegularOutput","parameters":{"url":"=https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&cosd={{ new Date(Date.now() - 10 * 86400000).toISOString().slice(0, 10) }}","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,360]},
+  output: [{ data: '<raw payload>' }]
+});
+
+const parse2 = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Parse RATE_US_TARGET_UPPER","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"RATE_US_TARGET_UPPER\",\"label\":\"미국 기준금리 상단\",\"unit\":\"percent\",\"decimals\":2,\"flag\":\"🇺🇸\",\"kind\":\"fred\",\"source\":\"FRED\"};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,360]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const fetch3 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch RATE_US_TARGET_LOWER","onError":"continueRegularOutput","parameters":{"url":"=https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARL&cosd={{ new Date(Date.now() - 10 * 86400000).toISOString().slice(0, 10) }}","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,540]},
+  output: [{ data: '<raw payload>' }]
+});
+
+const parse3 = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Parse RATE_US_TARGET_LOWER","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"RATE_US_TARGET_LOWER\",\"label\":\"미국 기준금리 하단\",\"unit\":\"percent\",\"decimals\":2,\"flag\":\"🇺🇸\",\"kind\":\"fred\",\"source\":\"FRED\"};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,540]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const fetch4 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch RATE_JP_POLICY","onError":"continueRegularOutput","parameters":{"url":"https://stats.bis.org/api/v1/data/WS_CBPOL/D.JP/all?format=csv&lastNObservations=3","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,720]},
+  output: [{ data: '<raw payload>' }]
+});
+
+const parse4 = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Parse RATE_JP_POLICY","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"RATE_JP_POLICY\",\"label\":\"일본 기준금리\",\"unit\":\"percent\",\"decimals\":2,\"flag\":\"🇯🇵\",\"kind\":\"bis\",\"source\":\"BIS\"};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,720]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const fetch5 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch IDX_KOSPI","onError":"continueRegularOutput","parameters":{"url":"https://query2.finance.yahoo.com/v8/finance/chart/%5EKS11?range=7d&interval=1d","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,900]},
+  output: [{ data: '<raw payload>' }]
+});
+
+const parse5 = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Parse IDX_KOSPI","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"IDX_KOSPI\",\"label\":\"KOSPI\",\"unit\":\"point\",\"decimals\":2,\"flag\":\"🇰🇷\",\"kind\":\"yahoo\",\"source\":\"YAHOO_IDX\"};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,900]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const fetch6 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch IDX_SP500","onError":"continueRegularOutput","parameters":{"url":"https://query2.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=7d&interval=1d","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,1080]},
+  output: [{ data: '<raw payload>' }]
+});
+
+const parse6 = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Parse IDX_SP500","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"IDX_SP500\",\"label\":\"S&P500\",\"unit\":\"point\",\"decimals\":2,\"flag\":\"🇺🇸\",\"kind\":\"yahoo\",\"source\":\"YAHOO_IDX\"};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,1080]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const fetch7 = node({
+  type: "n8n-nodes-base.httpRequest",
+  version: 4.2,
+  config: {"name":"Fetch IDX_NASDAQ","onError":"continueRegularOutput","parameters":{"url":"https://query2.finance.yahoo.com/v8/finance/chart/%5EIXIC?range=7d&interval=1d","options":{"response":{"response":{"responseFormat":"text"}},"timeout":15000}},"position":[224,1260]},
+  output: [{ data: '<raw payload>' }]
+});
+
+const parse7 = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Parse IDX_NASDAQ","parameters":{"mode":"runOnceForAllItems","jsCode":"const META = {\"code\":\"IDX_NASDAQ\",\"label\":\"NASDAQ\",\"unit\":\"point\",\"decimals\":2,\"flag\":\"🇺🇸\",\"kind\":\"yahoo\",\"source\":\"YAHOO_IDX\"};\nfunction fail(message) {\n  return [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                    decimals: META.decimals, flag: META.flag, source: META.source,\n                    status: 'error', message: message, observations: [] } }];\n}\nif (items[0] && items[0].json && items[0].json.error) {\n  return fail(String(items[0].json.error));\n}\nvar raw = items[0] && items[0].json ? items[0].json.data : null;\nif (!raw) return fail('empty response');\n\nvar observations = [];\nif (META.kind === 'yahoo') {\n  var parsed;\n  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch (e) { return fail('JSON parse: ' + e.message); }\n  var result = parsed && parsed.chart && parsed.chart.result ? parsed.chart.result[0] : null;\n  if (!result) return fail('no chart result');\n  var stamps = result.timestamp || [];\n  var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0])\n    ? result.indicators.quote[0].close : [];\n  for (var i = 0; i < stamps.length; i++) {\n    // close 배열에 null이 실제로 섞여 들어온다. 그대로 읽으면 값이 깨진다.\n    if (closes[i] === null || closes[i] === undefined) continue;\n    observations.push({ as_of: new Date(stamps[i] * 1000).toISOString().slice(0, 10), value: closes[i] });\n  }\n  // 장중이면 일봉 배열보다 meta 쪽이 최신이다.\n  var live = result.meta ? result.meta.regularMarketPrice : null;\n  var liveTime = result.meta ? result.meta.regularMarketTime : null;\n  if (typeof live === 'number' && liveTime) {\n    var liveDate = new Date(liveTime * 1000).toISOString().slice(0, 10);\n    var last = observations[observations.length - 1];\n    if (!last || last.as_of < liveDate) observations.push({ as_of: liveDate, value: live });\n    else if (last.as_of === liveDate) last.value = live;\n  }\n} else if (META.kind === 'fred') {\n  var lines = String(raw).split('\\n');\n  for (var k = 1; k < lines.length; k++) {\n    var cols = lines[k].trim().split(',');\n    if (cols.length < 2) continue;\n    if (cols[1] === '.' || cols[1] === '') continue;   // FRED의 결측 표기\n    var n = Number(cols[1]);\n    if (isNaN(n)) continue;\n    observations.push({ as_of: cols[0], value: n });\n  }\n} else if (META.kind === 'bis') {\n  // 본문에 콤마가 든 인용 필드가 있어 컬럼 분리 대신 ,날짜,값,상태, 패턴을 뽑는다.\n  var re = /,(\\d{4}-\\d{2}-\\d{2}),([0-9.]+),[A-Z],/g;\n  var m;\n  while ((m = re.exec(String(raw))) !== null) {\n    observations.push({ as_of: m[1], value: Number(m[2]) });\n  }\n} else {\n  return fail('unknown kind: ' + META.kind);\n}\n\nif (observations.length === 0) return fail('no observation parsed');\nobservations.sort(function (a, b) { return a.as_of < b.as_of ? -1 : a.as_of > b.as_of ? 1 : 0; });\nif (typeof META.multiplier === 'number') {\n  observations = observations.map(function (o) { return { as_of: o.as_of, value: o.value * META.multiplier }; });\n}\nreturn [{ json: { metric_code: META.code, label: META.label, unit: META.unit,\n                  decimals: META.decimals, flag: META.flag, source: META.source,\n                  status: 'ok', observations: observations.slice(-5) } }];\n"},"position":[448,1260]},
+  output: [{ metric_code: '', observations: [] }]
+});
+
+const emitFixed = node({
+  type: "n8n-nodes-base.code",
+  version: 2,
+  config: {"name":"Emit Fixed Metrics","parameters":{"mode":"runOnceForAllItems","jsCode":"const FIXED = [{\"metric_code\":\"RATE_KR_BASE\",\"label\":\"한국 기준금리\",\"unit\":\"percent\",\"decimals\":2,\"flag\":\"🇰🇷\",\"source\":\"FIXED_BOK\",\"value\":3,\"since\":\"2026-08-27\"}];\nconst today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);\nconst prev = new Date(Date.now() + 9 * 3600 * 1000 - 86400000).toISOString().slice(0, 10);\nreturn FIXED.map(function (f) {\n  return { json: { metric_code: f.metric_code, label: f.label, unit: f.unit,\n    decimals: f.decimals, flag: f.flag, source: f.source, status: \"ok\", since: f.since,\n    observations: [{ as_of: prev, value: f.value }, { as_of: today, value: f.value }] } };\n});"},"position":[448,1440]},
+  output: [{ metric_code: '', observations: [] }]
 });
 
 const mergeMetrics = merge({
   version: 3,
-  config: {
-    name: 'Merge Metrics',
-    parameters: { numberInputs: fetched.length + 1 },
-    position: [672, 800],
-  },
+  config: {"name":"Merge Metrics","parameters":{"numberInputs":9},"position":[672,800]}
 });
 
 const normalizeAndDelta = node({
-  type: 'n8n-nodes-base.code',
+  type: "n8n-nodes-base.code",
   version: 2,
-  config: {
-    name: 'Normalize & Delta',
-    parameters: {
-      mode: 'runOnceForAllItems',
-      jsCode: `
-const ORDER = ${JSON.stringify(METRICS.map((m) => m.code))};
-function round(n, d) { return Number(Math.round(Number(n + 'e' + d)) + 'e-' + d); }
-var metrics = [];
-var missing = [];
-var fetchErrors = [];
-for (var i = 0; i < items.length; i++) {
-  var j = items[i].json;
-  if (!j || !j.metric_code) continue;
-  if (j.status !== 'ok' || !j.observations || j.observations.length === 0) {
-    missing.push(j.metric_code);
-    fetchErrors.push({ metric_code: j.metric_code, message: j.message || 'no observation' });
-    continue;
-  }
-  var obs = j.observations;
-  var last = obs[obs.length - 1];
-  var prev = obs.length >= 2 ? obs[obs.length - 2] : null;
-  // 관측치가 하나뿐이면 전일 대비를 낼 수 없다. 0으로 채우지 않고 null로 남겨
-  // 브리핑에서 등락 표시를 생략하게 한다.
-  var delta = prev ? round(last.value - prev.value, j.decimals) : null;
-  var deltaPct = (prev && prev.value !== 0) ? round(((last.value - prev.value) / prev.value) * 100, 2) : null;
-  metrics.push({
-    metric_code: j.metric_code,
-    label: j.label,
-    flag: j.flag,
-    as_of: last.as_of,
-    value: round(last.value, j.decimals),
-    prev_as_of: prev ? prev.as_of : null,
-    delta: delta,
-    delta_pct: deltaPct,
-    decimals: j.decimals,
-    unit: j.unit,
-    source: j.source,
-    status: 'ok'
-  });
-}
-metrics.sort(function (a, b) { return ORDER.indexOf(a.metric_code) - ORDER.indexOf(b.metric_code); });
-return [{ json: { metrics: metrics, _count: metrics.length, _missing: missing, _fetchErrors: fetchErrors } }];
-`,
-    },
-    position: [896, 800],
-  },
-  output: [{ metrics: [], _count: 0, _missing: [], _fetchErrors: [] }],
+  config: {"name":"Normalize & Delta","parameters":{"mode":"runOnceForAllItems","jsCode":"\nconst ORDER = [\"FX_USDKRW\",\"FX_JPY100KRW\",\"RATE_KR_BASE\",\"RATE_US_TARGET_UPPER\",\"RATE_US_TARGET_LOWER\",\"RATE_JP_POLICY\",\"IDX_KOSPI\",\"IDX_SP500\",\"IDX_NASDAQ\"];\nfunction round(n, d) { return Number(Math.round(Number(n + 'e' + d)) + 'e-' + d); }\nvar metrics = [];\nvar missing = [];\nvar fetchErrors = [];\nfor (var i = 0; i < items.length; i++) {\n  var j = items[i].json;\n  if (!j || !j.metric_code) continue;\n  if (j.status !== 'ok' || !j.observations || j.observations.length === 0) {\n    missing.push(j.metric_code);\n    fetchErrors.push({ metric_code: j.metric_code, message: j.message || 'no observation' });\n    continue;\n  }\n  var obs = j.observations;\n  var last = obs[obs.length - 1];\n  var prev = obs.length >= 2 ? obs[obs.length - 2] : null;\n  // 관측치가 하나뿐이면 전일 대비를 낼 수 없다. 0으로 채우지 않고 null로 남겨\n  // 브리핑에서 등락 표시를 생략하게 한다.\n  var delta = prev ? round(last.value - prev.value, j.decimals) : null;\n  var deltaPct = (prev && prev.value !== 0) ? round(((last.value - prev.value) / prev.value) * 100, 2) : null;\n  metrics.push({\n    metric_code: j.metric_code,\n    label: j.label,\n    flag: j.flag,\n    as_of: last.as_of,\n    value: round(last.value, j.decimals),\n    prev_as_of: prev ? prev.as_of : null,\n    delta: delta,\n    delta_pct: deltaPct,\n    decimals: j.decimals,\n    unit: j.unit,\n    source: j.source,\n    status: 'ok'\n  });\n}\nmetrics.sort(function (a, b) { return ORDER.indexOf(a.metric_code) - ORDER.indexOf(b.metric_code); });\nreturn [{ json: { metrics: metrics, _count: metrics.length, _missing: missing, _fetchErrors: fetchErrors } }];\n"},"position":[896,800]},
+  output: [{ metrics: [], _count: 0, _missing: [], _fetchErrors: [] }]
 });
 
-let chain = workflow('SUB_FETCH_METRICS_ID', 'Sub-Fetch-Metrics');
-fetched.forEach((_, i) => {
-  chain = chain.add(whenCalled).to(fetchNodes[i].to(parseNodes[i].to(mergeMetrics.input(i))));
-});
-chain = chain.add(whenCalled).to(emitFixed.to(mergeMetrics.input(fetched.length)));
-
-export default chain.add(mergeMetrics).to(normalizeAndDelta);
+export default workflow('SUB_FETCH_METRICS_ID', 'Sub-Fetch-Metrics')
+  .add(whenCalled)
+  .to(fetch0.to(parse0.to(mergeMetrics.input(0))))
+  .add(whenCalled)
+  .to(fetch1.to(parse1.to(mergeMetrics.input(1))))
+  .add(whenCalled)
+  .to(fetch2.to(parse2.to(mergeMetrics.input(2))))
+  .add(whenCalled)
+  .to(fetch3.to(parse3.to(mergeMetrics.input(3))))
+  .add(whenCalled)
+  .to(fetch4.to(parse4.to(mergeMetrics.input(4))))
+  .add(whenCalled)
+  .to(fetch5.to(parse5.to(mergeMetrics.input(5))))
+  .add(whenCalled)
+  .to(fetch6.to(parse6.to(mergeMetrics.input(6))))
+  .add(whenCalled)
+  .to(fetch7.to(parse7.to(mergeMetrics.input(7))))
+  .add(whenCalled)
+  .to(emitFixed.to(mergeMetrics.input(8)))
+  .add(mergeMetrics)
+  .to(normalizeAndDelta);
