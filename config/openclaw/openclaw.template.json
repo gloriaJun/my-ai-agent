@@ -5,16 +5,23 @@
       "thinkingDefault": "off",
       "model": {
         "primary": "${LLM_PRIMARY_MODEL}",
-        "fallbacks": ["${LLM_FALLBACK_MODEL}"]
-      },
-      "compaction": {
-        "reserveTokensFloor": 20000
+        "fallbacks": [
+          "${LLM_FALLBACK_MODEL}"
+        ]
       },
       "models": {
         "openai/gpt-4o-mini": {},
         "openai/gpt-4o": {},
-        "codex/gpt-5.4-mini": {},
-        "codex/gpt-5.5": {}
+        "openai/gpt-5.4-mini": {
+          "agentRuntime": {
+            "id": "codex"
+          }
+        },
+        "openai/gpt-5.5": {
+          "agentRuntime": {
+            "id": "codex"
+          }
+        }
       }
     }
   },
@@ -28,25 +35,16 @@
     "bind": "lan",
     "http": {
       "endpoints": {
-        "chatCompletions": { "enabled": true }
+        "chatCompletions": {
+          "enabled": true
+        }
       }
     },
     "controlUi": {
       "enabled": true,
       "basePath": "/",
-      "allowedOrigins": ["https://gloriajun.duckdns.org"],
-      "allowInsecureAuth": true
-    },
-    "nodes": {
-      "denyCommands": [
-        "camera.snap",
-        "camera.clip",
-        "screen.record",
-        "contacts.add",
-        "calendar.add",
-        "reminders.add",
-        "sms.send",
-        "sms.search"
+      "allowedOrigins": [
+        "https://gloriajun.duckdns.org"
       ]
     }
   },
@@ -97,31 +95,42 @@
         "C0B06QW9MQU": {
           "enabled": true,
           "requireMention": false,
-          "skills": ["school-booking"],
+          "skills": [
+            "school-booking"
+          ],
           "systemPrompt": "This channel is for school room reservations only (add, list, cancel). First, run `cat /home/node/.openclaw/workspace/skills/school-booking/SKILL.md` via the exec tool to load the instructions, then follow them exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. For any other request: reply that this channel is for reservations only and stop. Always respond in the same language the user used."
         },
         "C0B015JR0BY": {
           "enabled": true,
           "requireMention": false,
-          "skills": ["news-detail", "news-digest"],
+          "skills": [
+            "news-detail",
+            "news-digest"
+          ],
           "systemPrompt": "You are a frontend and AI technology expert in this channel. A daily tech news digest is posted here automatically every morning. To summarize a specific article link from the digest or to analyze recent tech trends, read /home/node/.openclaw/workspace/skills/news-digest/SKILL.md and follow it exactly. For deeper article content, community reactions (comments), or keyword news search, read /home/node/.openclaw/workspace/skills/news-detail/SKILL.md and follow it exactly. In both cases use the exec tool to run the curl command; all calls are pre-authorized. For any other general tech question about frontend (React, Vue, Svelte, TypeScript, CSS, Vite, Next.js, etc.) or AI/LLM topics, answer with your expertise directly. Always respond in Korean."
         },
         "C0B037KSZ3L": {
           "enabled": true,
           "requireMention": false,
-          "skills": ["youtube-summary"],
+          "skills": [
+            "youtube-summary"
+          ],
           "systemPrompt": "You are a YouTube content expert in this channel. For any YouTube-related request (video summary, channel search, subscribe/unsubscribe channel monitoring, list monitored channels): read /home/node/.openclaw/workspace/skills/youtube-summary/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. For requests unrelated to YouTube: reply in the same language the user used that this channel is for YouTube content only and stop."
         },
         "C0B0WBE8C1M": {
           "enabled": true,
           "requireMention": false,
-          "skills": ["shopping-monitor"],
+          "skills": [
+            "shopping-monitor"
+          ],
           "systemPrompt": "This channel is for shopping monitoring (price tracking, news alerts, event alerts). Read /home/node/.openclaw/workspace/skills/shopping-monitor/SKILL.md and follow its instructions exactly — use the exec tool to run the curl command, all webhook calls are pre-authorized. For any unrelated request: explain the channel purpose and stop. Always respond in Korean."
         },
         "C0BU4BY9EMP": {
           "enabled": true,
           "requireMention": false,
-          "skills": ["ricetta"],
+          "skills": [
+            "ricetta"
+          ],
           "systemPrompt": "This channel is for the ricetta recipe archive. Read /home/node/.openclaw/workspace/skills/ricetta/SKILL.md and follow it exactly — use the exec tool to run the curl commands, all calls are pre-authorized. A recipe link (Instagram or YouTube) means register: extract it, structure the caption into ingredients and steps, post a summary, and save ONLY after the user confirms in the thread. Ingredients with no link mean match: find saved recipes that use them. Never invent an ingredient or a step, and never save without an explicit confirmation. For any unrelated request: say this channel is for recipes only and stop. Always respond in Korean."
         }
       }
@@ -134,8 +143,7 @@
     "lastRunMode": "local"
   },
   "meta": {
-    "lastTouchedVersion": "2026.4.14",
-    "lastTouchedAt": "2026-04-14T17:54:35.662Z"
+    "lastTouchedVersion": "2026.4.14"
   },
   "env": {
     "shellEnv": {
@@ -144,7 +152,11 @@
     }
   },
   "plugins": {
-    "allow": ["slack"],
+    "allow": [
+      "slack",
+      "openai",
+      "codex"
+    ],
     "entries": {
       "google": {
         "enabled": false

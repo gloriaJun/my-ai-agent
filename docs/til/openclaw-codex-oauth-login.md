@@ -19,6 +19,7 @@
 
 - **provider는 `openai`다.** 런타임 401 에러는 `Re-authenticate with: openclaw models auth login --provider 'codex'`라고 안내하지만 부정확하다. `codex`는 모델 카탈로그 네임스페이스일 뿐 auth provider가 아니라서, `--provider codex`로는 auth flow가 뜨지 않고 "Default model available"만 출력하고 종료된다.
 - 모델 참조는 `codex/gpt-5.4-mini`, `codex/gpt-5.5` 형태(구버전 `openai-codex/*`는 폐기).
+- **2026.8.1부터 다시 바뀌었다**: `openai/gpt-5.4-mini` + 모델별 `agentRuntime.id: "codex"`. `codex/*`는 스키마 검증은 통과하지만 `doctor --fix`가 위 형태로 이관한다.
 
 ## 확인
 
