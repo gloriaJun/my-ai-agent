@@ -73,7 +73,7 @@ services:
 
   openclaw:
     # 이동 태그(:latest)는 ctl.sh restart 의 compose pull 로 예고 없이 올라간다.
-    image: ghcr.io/openclaw/openclaw:2026.6.11
+    image: ghcr.io/openclaw/openclaw:2026.9.2
     container_name: openclaw
     user: "1000:1000"
     # ports:
