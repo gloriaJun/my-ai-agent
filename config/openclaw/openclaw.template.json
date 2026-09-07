@@ -10,8 +10,6 @@
         ]
       },
       "models": {
-        "openai/gpt-4o-mini": {},
-        "openai/gpt-4o": {},
         "openai/gpt-5.4-mini": {
           "agentRuntime": {
             "id": "codex"
@@ -61,26 +59,6 @@
   "messages": {
     "groupChat": {
       "visibleReplies": "automatic"
-    }
-  },
-  "models": {
-    "mode": "replace",
-    "providers": {
-      "openai": {
-        "baseUrl": "https://api.openai.com",
-        "api": "openai-completions",
-        "apiKey": "OPENAI_API_KEY",
-        "models": [
-          {
-            "id": "gpt-4o-mini",
-            "name": "gpt-4o-mini"
-          },
-          {
-            "id": "gpt-4o",
-            "name": "gpt-4o"
-          }
-        ]
-      }
     }
   },
   "channels": {
