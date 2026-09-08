@@ -44,7 +44,8 @@ is a `match`.
 ## action=register
 
 Never save without the user's confirmation in the thread. The archive rejects a
-second save of the same link, so a wrong save has to be deleted by hand on the web.
+second save of the exact same link and title, so a wrong save has to be deleted
+by hand on the web.
 
 ### 1. Extract
 
@@ -99,35 +100,28 @@ not as a failure - `title` and the photo did arrive, so only the text is missing
 
 ### 2b. When one link holds several recipes
 
-A single post can list a dozen recipes (a "베스트 12" infographic, a weekly menu).
-ricetta ties one `source_url` to one recipe - the column is unique - so the second
-save under the same link comes back 409. Do not pick one silently and do not
-retry the rest.
+A single post can list a dozen recipes (a "베스트 12" infographic, a weekly menu,
+a sauce round-up). ricetta's uniqueness is `(source_url, title)` together, not
+the link alone - every recipe from the post keeps `sourceType`·`sourceUrl`
+straight from `draft`, and only a genuinely repeated title collides (409). Do
+not pick one silently and do not drop the rest.
 
-Ask in the thread instead:
-
-> 이 링크에서 레시피 N개를 찾았어요. ricetta는 링크 하나에 레시피 하나만 출처로 묶을 수
-> 있어요. 어떻게 할까요?
-> 1. 전부 직접 등록으로 저장 (원본 링크는 메모에 남겨요)
-> 2. 하나만 골라 인스타 출처로 저장
-
-- **1을 고르면** each recipe is saved with `"sourceType":"manual"` and **no
-  `sourceUrl` field at all**, with the original link written into `memo`. That is
-  what `manual` means here - not "a human typed it" but "ricetta's adapter did not
-  fetch it", which is exactly the case when the text came from the user rather
-  than the caption. Leaving `sourceUrl` out is what lets several rows coexist.
-- **2를 고르면** that one recipe keeps `sourceType`·`sourceUrl` from `draft` and the
-  rest are not saved.
-- Confirm every recipe's summary before saving, one message listing all of them is
-  fine. Save them one call at a time and report which succeeded.
-
-**Judge each recipe on its own.** Recipes arriving in one batch share nothing but
-the source: 카테고리 and 태그 come from that dish and its own steps, so decide them
-per recipe rather than copying the first one's answer across the batch. Equally,
-never leave a recipe's 카테고리 or 태그 empty just because the batch was long - a
-row saved with neither is indistinguishable from one nobody has looked at yet.
-Put every recipe's 카테고리·태그 in the confirmation summary so the user sees all of
-them side by side, and ask when a dish gives you no basis to decide.
+- Save every recipe with the batch's `sourceType`·`sourceUrl` from `draft`
+  unchanged - do not fall back to `manual` or move the link into `memo`.
+- **Judge each recipe on its own.** Recipes arriving in one batch share nothing
+  but the source: 카테고리 and 태그 come from that dish and its own steps, so
+  decide them per recipe rather than copying the first one's answer across the
+  batch. A "소스 모음" post is the clearest case - each sauce gets its own 카테고리
+  (pick from `suggestions` per recipe, don't reuse the first one), and 소스/양념장
+  is usually the right 태그 whether or not `suggestions.tags` already caught it.
+  Never leave a recipe's 카테고리 or 태그 empty just because the batch was long - a
+  row saved with neither is indistinguishable from one nobody has looked at yet.
+  Put every recipe's 카테고리·태그 in the confirmation summary so the user sees all
+  of them side by side, and ask when a dish gives you no basis to decide.
+- Confirm every recipe's summary before saving, one message listing all of them
+  is fine. Save them one call at a time and report which succeeded.
+- A genuine repeat (the same title already saved under this link) still 409s -
+  see §4.
 
 ### 2c. Keep the link the user gave
 
@@ -137,10 +131,9 @@ Never drop it.
 
 - **Saving one recipe**: put that link in `sourceUrl` even when `sourceType` is
   `manual`. The detail screen then shows the source icon and the link.
-- **Saving several from one link**: `source_url` is unique, so only one row could
-  hold it and the rest would 409. Write the link into every recipe's `memo`
-  instead (`원본: <link>`) and leave `sourceUrl` out of all of them - one row
-  quietly owning the link while its siblings look source-less is worse than none.
+- **Saving several from one link**: keep `sourceUrl` on every row. ricetta's
+  uniqueness is `(source_url, title)`, so distinct titles coexist under the
+  same link - there is no need to move it into `memo` or drop it from any row.
 - The link counts whether it arrived with this message or earlier in the thread.
   Images uploaded with no link at all are the only case with nothing to record.
 
@@ -176,8 +169,11 @@ curl -s -X POST "${RICETTA_URL}/api/recipes" \
   omit the field: the recipe lands in `분류 없음`, which the web screen shows as a
   queue to sort out later. Sending `기타` instead makes it look like a human chose it.
 - 201: reply with 요리명 and `${RICETTA_PUBLIC_URL}/recipes/<id>`.
-- 409 `DUPLICATE_SOURCE_URL`: the body carries `recipeId`. Say it is already saved
-  and link to it. Do not try to save it again.
+- 409 `DUPLICATE_SOURCE_URL`: the body carries `recipeId`. This means the same
+  link **and** the same title were already saved - say it is already saved and
+  link to it. If this recipe is meant to be a different dish from the same
+  post, re-check the title (typo or accidental copy) rather than assuming the
+  whole link is blocked.
 - 400: show `message`, say what to fix, and ask again.
 
 ## action=match
