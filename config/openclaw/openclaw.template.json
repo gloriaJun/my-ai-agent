@@ -136,7 +136,8 @@
     "allow": [
       "slack",
       "openai",
-      "codex"
+      "codex",
+      "memory-core"
     ],
     "entries": {
       "google": {
@@ -147,6 +148,14 @@
       },
       "slack": {
         "enabled": true
+      },
+      "memory-core": {
+        "enabled": true,
+        "config": {
+          "dreaming": {
+            "model": "openai/gpt-5.4-mini"
+          }
+        }
       }
     }
   }
