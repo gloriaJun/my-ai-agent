@@ -31,6 +31,9 @@
     },
     "port": 18789,
     "bind": "lan",
+    "trustedProxies": [
+      "172.18.0.5/32"
+    ],
     "http": {
       "endpoints": {
         "chatCompletions": {
