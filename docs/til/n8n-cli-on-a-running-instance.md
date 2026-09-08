@@ -129,3 +129,32 @@ docker exec n8n sh -c 'find /usr/local/lib/node_modules/n8n/node_modules/.pnpm -
 ```
 
 지운 뒤에는 각 테이블의 잔여 행 수와 `n8n list:workflow`로 확인한다. 컨테이너 재기동은 필요 없다.
+
+---
+
+## import은 워크플로 settings를 덮는다
+
+`code-to-json`이 만드는 JSON의 `settings`는 비어 있다. UI에서 설정한 값은 SDK 소스에 없으므로
+**`import:workflow` 한 번이면 사라진다.** 가장 아픈 것이 `errorWorkflow`다. 끊긴 사실조차 조용하다.
+
+```bash
+# 레포 파일이 만드는 settings
+$ npx @n8n/workflow-sdk code-to-json daily-tech-news.js
+  "settings": {}
+
+# DB에 실제로 들어 있는 값
+  {"executionOrder":"v1","errorWorkflow":"ThAqXteh1LGZZoXt","callerPolicy":"workflowsFromSameOwner", ...}
+```
+
+2026-09-08 기준 `errorWorkflow`가 걸린 워크플로 8개는 전부 UI 설정값이다: `My-AI-Agent`,
+`Daily Tech News Summary`, `Sub-News-Detail`, `Sub-YouTube-Summary`, `Sub-Booking-School`,
+`Daily Booking Reminder`, `Monitor-Shopping-All`, `YouTube Channel Monitor`.
+
+**대응**: 이 워크플로들을 레포에서 재import하기 전에 기존 `settings`를 읽어 병합한다.
+
+```python
+# import 직전, DB의 기존 settings를 새 JSON에 얹는다
+new["settings"] = {**old_settings_from_db, **new.get("settings", {})}
+```
+
+SDK가 `settings`를 표현할 수 있게 되면 이 후처리는 필요 없어진다.
