@@ -39,7 +39,9 @@ const postToSlack = node({
       sendBody: true,
       contentType: 'json',
       specifyBody: 'json',
-      jsonBody: expr('={{ JSON.stringify({ channel: "C0B015JR0BY", text: $json.body.text }) }}'),
+      jsonBody: expr(
+        '={{ JSON.stringify({ channel: "C0B015JR0BY", text: $json.body.text, unfurl_links: false, unfurl_media: false }) }}',
+      ),
       options: { timeout: 15000 }
     },
     position: [224, 0]
