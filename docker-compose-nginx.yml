@@ -16,6 +16,11 @@ services:
       - ./data/nginx/letsencrypt:/etc/letsencrypt
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # openclaw 의 gateway.trustedProxies 가 이 주소를 신뢰한다.
+    # 동적 할당(.2부터 순차)과 겹치지 않도록 높은 주소를 고정한다.
+    networks:
+      default:
+        ipv4_address: 172.18.0.250
     deploy:
       resources:
         limits:
