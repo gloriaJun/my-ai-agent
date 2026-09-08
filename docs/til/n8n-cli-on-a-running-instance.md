@@ -47,8 +47,27 @@ ssh ocl 'docker cp /tmp/<name>.json n8n:/tmp/wf.json && \
 ssh ocl 'docker exec n8n n8n publish:workflow --id=<id>'
 ```
 
-`import:workflow`는 기본으로 워크플로를 비활성 상태로 만든다(`--activeState=false`). JSON의
-`active` 값을 따르게 하려면 `--activeState=fromJson`.
+`import:workflow`는 **항상** 워크플로를 비활성으로 만든다. JSON의 `active` 값을 따르게 하는
+`--activeState=fromJson`은 queue나 multi-main 모드에서만 쓸 수 있고, 단일 인스턴스에서는
+거부된다.
+
+```
+The "--activeState=fromJson" flag can only be used when n8n is running in
+queue or multi-main mode.
+```
+
+스케줄이 실제로 돌게 하려면 두 단계가 다 필요하다.
+
+```bash
+docker exec n8n n8n publish:workflow --id=<id>   # workflow_entity.active = 1
+docker restart n8n                                # 실행 중인 프로세스에 트리거 등록
+```
+
+`publish`만 하면 DB의 `active`는 1이 되지만 **돌지 않는다.** publish 출력의
+"restart n8n for changes to take effect"가 그 뜻이다. 재기동 로그에서
+`Activated workflow "<name>"`을 확인하는 것이 유일한 확실한 검증이다.
+
+`active=1`이 활성화 기준이 맞다. `workflow_published_version` 테이블은 비어 있어도 무관하다.
 
 ### 4. 수동 실행: 브로커 포트를 반드시 옮긴다
 
