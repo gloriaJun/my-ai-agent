@@ -36,6 +36,22 @@
           }
         }
       }
+    },
+    "entries": {
+      "codex-light": {
+        "name": "Codex (light tools)",
+        "model": "openai/gpt-5.6-luna",
+        "models": {
+          "openai/gpt-5.6-luna": {
+            "agentRuntime": {
+              "id": "codex"
+            }
+          }
+        },
+        "tools": {
+          "profile": "minimal"
+        }
+      }
     }
   },
   "gateway": {
