@@ -1,0 +1,15 @@
+[Unit]
+Description=Recover services interrupted during Oracle backup
+Requires=docker.service
+After=docker.service
+Before=oracle-maintenance.path
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+UMask=0077
+ExecStart=/usr/bin/python3 /home/ubuntu/my-ai-agent/scripts/oracle-maintenance.py --config /etc/oracle-maintenance/config.json recover
+TimeoutStartSec=240
+
+[Install]
+WantedBy=multi-user.target

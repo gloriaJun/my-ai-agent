@@ -1,0 +1,16 @@
+[Unit]
+Description=Oracle service backup and monthly maintenance
+Requires=docker.service
+After=docker.service oracle-maintenance-recover.service
+ConditionPathExists=/var/lib/oracle-maintenance/requests/start.json
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /home/ubuntu/my-ai-agent/scripts/oracle-maintenance.py --config /etc/oracle-maintenance/config.json run
+ExecStopPost=/usr/bin/python3 /home/ubuntu/my-ai-agent/scripts/oracle-maintenance.py --config /etc/oracle-maintenance/config.json recover
+TimeoutStartSec=2h
+TimeoutStopSec=240
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

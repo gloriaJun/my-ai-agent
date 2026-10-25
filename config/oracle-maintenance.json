@@ -1,0 +1,9 @@
+{
+  "home": "/home/ubuntu",
+  "state_dir": "/var/lib/oracle-maintenance",
+  "rclone_config": "/root/.config/rclone/rclone.conf",
+  "remote": "gdrive:oracle-backups",
+  "grace_seconds": 15,
+  "health_timeout_seconds": 180,
+  "retention_days": 7
+}
